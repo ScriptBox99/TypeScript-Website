@@ -288,3 +288,111 @@ These differ only in that assignment extends subtype compatibility with rules to
 
 Different places in the language use one of the two compatibility mechanisms, depending on the situation.
 For practical purposes, type compatibility is dictated by assignment compatibility, even in the cases of the `implements` and `extends` clauses.
+
+## `Any`, `unknown`, `object`, `void`, `undefined`, `null`, and `never` assignability
+
+The following table summarizes assignability between some abstract types.
+Rows indicate what each is assignable to, columns indicate what is assignable to them.
+A "<span class='black-tick'>✓</span>" indicates a combination that is compatible only when [`--strictNullChecks`](/tsconfig#strictNullChecks) is off.
+
+<!-- This is the rendered form of https://github.com/microsoft/TypeScript-Website/pull/1490 -->
+<table class="data">
+<thead>
+<tr>
+<th></th>
+<th align="center">any</th>
+<th align="center">unknown</th>
+<th align="center">object</th>
+<th align="center">void</th>
+<th align="center">undefined</th>
+<th align="center">null</th>
+<th align="center">never</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>any →</td>
+<td align="center"></td>
+<td align="center"><span class="blue-tick" style="
+    color: #007aff;
+">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>unknown →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>object →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>void →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>undefined →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="black-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"></td>
+<td align="center"><span class="black-tick">✓</span></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>null →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="black-tick">✓</span></td>
+<td align="center"><span class="black-tick">✓</span></td>
+<td align="center"><span class="black-tick">✓</span></td>
+<td align="center"></td>
+<td align="center"><span class="red-cross">✕</span></td>
+</tr>
+<tr>
+<td>never →</td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"><span class="blue-tick">✓</span></td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
+
+Reiterating [Basic Types](/handbook/basic-types.html):
+
+- Everything is assignable to itself.
+- `any` and `unknown` are the same in terms of what is assignable to them, different in that `unknown` is not assignable to anything except `any`.
+- `unknown` and `never` are like inverses of each other.
+  Everything is assignable to `unknown`, `never` is assignable to everything.
+  Nothing is assignable to `never`, `unknown` is not assignable to anything (except `any`).
+- `void` is not assignable to or from anything, with the following exceptions: `any`, `unknown`, `never`, `undefined`, and `null` (if `--strictNullChecks` is off, see table for details).
+- When `--strictNullChecks` is off, `null` and `undefined` are similar to `never`: assignable to most types, most types are not assignable to them.
+  They are assignable to each other.
+- When `--strictNullChecks` is on, `null` and `undefined` behave more like `void`: not assignable to or from anything, except for `any`, `unknown`, `never`, and `void` (`undefined` is always assignable to `void`).

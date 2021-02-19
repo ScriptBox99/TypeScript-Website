@@ -34,6 +34,26 @@ const todo2 = updateTodo(todo1, {
 });
 ```
 
+
+## `Required<Type>`
+
+Constructs a type consisting of all properties of `Type` set to required. The opposite of [`Partial`](#partialtype).
+
+##### Example
+
+```ts twoslash
+// @errors: 2741
+interface Props {
+  a?: number;
+  b?: string;
+}
+
+const obj: Props = { a: 5 };
+
+const obj2: Required<Props> = { a: 5 };
+```
+
+
 ## `Readonly<Type>`
 
 Constructs a type with all properties of `Type` set to `readonly`, meaning the properties of the constructed type cannot be reassigned.
@@ -63,7 +83,7 @@ function freeze<Type>(obj: Type): Readonly<Type>;
 
 ## `Record<Keys,Type>`
 
-Constructs a type with a set of properties `Keys` of type `Type`. This utility can be used to map the properties of a type to another type.
+Constructs an object type whose property keys are `Keys` and whose property values are `Type`. This utility can be used to map the properties of a type to another type.
 
 ##### Example
 
@@ -279,24 +299,6 @@ type T4 = InstanceType<Function>;
 //    ^?
 ```
 
-## `Required<Type>`
-
-Constructs a type consisting of all properties of `T` set to required. The opposite of [`Partial`](#partialtype).
-
-##### Example
-
-```ts twoslash
-// @errors: 2741
-interface Props {
-  a?: number;
-  b?: string;
-}
-
-const obj: Props = { a: 5 };
-
-const obj2: Required<Props> = { a: 5 };
-```
-
 ## `ThisParameterType<Type>`
 
 Extracts the type of the [this](/docs/handbook/functions.html#this-parameters) parameter for a function type, or [unknown](/docs/handbook/release-notes/typescript-3-0.html#new-unknown-top-type) if the function type has no `this` parameter.
@@ -366,3 +368,7 @@ obj.moveBy(5, 5);
 In the example above, the `methods` object in the argument to `makeObject` has a contextual type that includes `ThisType<D & M>` and therefore the type of [this](/docs/handbook/functions.html#this) in methods within the `methods` object is `{ x: number, y: number } & { moveBy(dx: number, dy: number): number }`. Notice how the type of the `methods` property simultaneously is an inference target and a source for the `this` type in methods.
 
 The `ThisType<T>` marker interface is simply an empty interface declared in `lib.d.ts`. Beyond being recognized in the contextual type of an object literal, the interface acts like any empty interface.
+
+## Intrinsic String Manipulation Types
+
+To help with string manipulation around template string literals, TypeScript includes a set of types which can be used in string manipulation within the type system. You can find those in the [Template Literal Types](/docs/handbook/2/template-literal-types.html#uppercasestringtype) documentation.

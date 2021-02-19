@@ -2,7 +2,7 @@
 title: Conditional Types
 layout: docs
 permalink: /docs/handbook/2/conditional-types.html
-oneline: "Step one in learning TypeScript: The basics types."
+oneline: "Create types which act like if statements in the type system."
 beta: true
 ---
 
@@ -18,14 +18,14 @@ interface Dog extends Animal {
   woof(): void;
 }
 
-type Foo = Dog extends Animal ? number : string;
+type Example1 = Dog extends Animal ? number : string;
 //   ^?
 
-type Bar = RegExp extends Animal ? number : string;
+type Example2 = RegExp extends Animal ? number : string;
 //   ^?
 ```
 
-Conditional types take a form that looks a little like conditional expresions (`cond ? trueExpression : falseExpression`) in JavaScript:
+Conditional types take a form that looks a little like conditional expressions (`condition ? trueExpression : falseExpression`) in JavaScript:
 
 ```ts twoslash
 type SomeType = any;
@@ -186,26 +186,27 @@ Conditional types provide us with a way to infer from types we compare against i
 For example, we could have inferred the element type in `Flatten` instead of fetching it out "manually" with an indexed access type:
 
 ```ts twoslash
-type Flatten<T> = T extends Array<infer U> ? U : T;
+type Flatten<Type> = Type extends Array<infer Item> ? Item : Type;
 ```
 
-Here, we used the `infer` keyword declaratively introduced a new generic type variable named `U` instead of specifying how to retrieve the element type of `T`.
-Within the true branch
+Here, we used the `infer` keyword declaratively introduced a new generic type variable named `U` instead of specifying how to retrieve the element type of `T` within the true branch.
 This frees us from having to think about how to dig through and probing apart the structure of the types we're interested.
 
 We can write some useful helper type aliases using the `infer` keyword.
 For example, for simple cases, we can extract the return type out from function types:
 
 ```ts twoslash
-type GetReturnType<T> = T extends (...args: never[]) => infer U ? U : never;
+type GetReturnType<Type> = Type extends (...args: never[]) => infer Return
+  ? Return
+  : never;
 
-type Foo = GetReturnType<() => number>;
+type Num = GetReturnType<() => number>;
 //   ^?
 
-type Bar = GetReturnType<(x: string) => string>;
+type Str = GetReturnType<(x: string) => string>;
 //   ^?
 
-type Baz = GetReturnType<(a: boolean, b: boolean) => boolean[]>;
+type Bools = GetReturnType<(a: boolean, b: boolean) => boolean[]>;
 //   ^?
 ```
 
@@ -215,39 +216,39 @@ When conditional types act on a generic type, they become _distributive_ when gi
 For example, take the following:
 
 ```ts twoslash
-type Foo<T> = T extends any ? T[] : never;
+type ToArray<Type> = Type extends any ? Type[] : never;
 ```
 
-If we plug a union type into `Foo`, then the conditional type will be applied to each member of that union.
+If we plug a union type into `ToArray`, then the conditional type will be applied to each member of that union.
 
 ```ts twoslash
-type Foo<T> = T extends any ? T[] : never;
+type ToArray<Type> = Type extends any ? Type[] : never;
 
-type Bar = Foo<string | number>;
+type StrArrOrNumArr = ToArray<string | number>;
 //   ^?
 ```
 
-What happens here is that `Foo` distributes on
+What happens here is that `StrOrNumArray` distributes on:
 
 ```ts twoslash
-type Blah =
+type StrArrOrNumArr =
   // ---cut---
   string | number;
 ```
 
-and maps over each member type of the union, to what is effectively
+and maps over each member type of the union, to what is effectively:
 
 ```ts twoslash
-type Foo<T> = T extends any ? T[] : never;
-type Blah =
+type ToArray<Type> = Type extends any ? Type[] : never;
+type StrArrOrNumArr =
   // ---cut---
-  Foo<string> | Foo<number>;
+  ToArray<string> | ToArray<number>;
 ```
 
-which leaves us with
+which leaves us with:
 
 ```ts twoslash
-type Blah =
+type StrArrOrNumArr =
   // ---cut---
   string[] | number[];
 ```
@@ -256,9 +257,9 @@ Typically, distributivity is the desired behavior.
 To avoid that behavior, you can surround each side of the `extends` keyword with square brackets.
 
 ```ts twoslash
-type Foo<T> = [T] extends [any] ? T[] : never;
+type ToArrayNonDist<Type> = [Type] extends [any] ? Type[] : never;
 
-// 'Bar' is no longer a union.
-type Bar = Foo<string | number>;
+// 'StrOrNumArr' is no longer a union.
+type StrOrNumArr = ToArrayNonDist<string | number>;
 //   ^?
 ```

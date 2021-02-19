@@ -47,7 +47,6 @@ const HandbookTemplate: React.FC<Props> = (props) => {
   const i = createInternational<typeof handbookCopy>(useIntl())
   const IntlLink = createIntlLink(props.pageContext.lang)
 
-
   useEffect(() => {
     overrideSubNavLinksWithSmoothScroll()
 
@@ -73,9 +72,11 @@ const HandbookTemplate: React.FC<Props> = (props) => {
   const showSidebar = !post.frontmatter.disable_toc
   const showSidebarHeadings = post.headings && sidebarHeaders.length <= 30
   const navigation = getDocumentationNavForLanguage(props.pageContext.lang)
+  const isHandbook = post.frontmatter.handbook
+  const prefix = isHandbook ? "Handbook" : "Documentation"
   const slug = slugger()
   return (
-    <Layout title={"Handbook - " + post.frontmatter.title} description={post.frontmatter.oneline || ""} lang={props.pageContext.lang}>
+    <Layout title={`${prefix} - ${post.frontmatter.title}`} description={post.frontmatter.oneline || ""} lang={props.pageContext.lang}>
       {post.frontmatter.beta && <div id="beta">Warning: This page is a work in progress</div>}
       <section id="doc-layout">
         <SidebarToggleButton />
@@ -91,9 +92,16 @@ const HandbookTemplate: React.FC<Props> = (props) => {
         <Sidebar navItems={navigation} selectedID={selectedID} />
         <div id="handbook-content" role="article">
           <h2>{post.frontmatter.title}</h2>
+          {post.frontmatter.preamble && <div className="preamble" dangerouslySetInnerHTML={{ __html: post.frontmatter.preamble }} />}
           <article>
-            <div className="whitespace raised">
+            <div className="whitespace raised" style={{paddingBottom: "0"}}>
               <div className="markdown" dangerouslySetInnerHTML={{ __html: post.html! }} />
+              <div className="docs-footer" id="like-dislike-subnav">
+                
+                <button id="like-button"><LikeUnfilledSVG /> {i("handb_like_desc")}</button>
+                <button id="dislike-button"><DislikeUnfilledSVG /> {i("handb_dislike_desc")}</button>
+                <h5>{i("handb_like_dislike_title")}</h5>
+              </div>
             </div>
 
 
@@ -112,13 +120,6 @@ const HandbookTemplate: React.FC<Props> = (props) => {
                     </ul>
                   </>
                   }
-                  <div id="like-dislike-subnav">
-                    <h5>{i("handb_like_dislike_title")}</h5>
-                    <div>
-                      <button id="like-button"><LikeUnfilledSVG /> {i("handb_like_desc")}</button>
-                      <button id="dislike-button"><DislikeUnfilledSVG /> {i("handb_dislike_desc")}</button>
-                    </div>
-                  </div>
                 </nav>
               </aside>
             }
@@ -148,8 +149,10 @@ export const pageQuery = graphql`
         permalink
         title
         disable_toc
+        handbook
         oneline
         beta
+        preamble
       }
     }
 
