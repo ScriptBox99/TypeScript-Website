@@ -7,18 +7,20 @@ import { format } from "prettier"
 import gatsbyRemarkShiki from "../src/index"
 const remark = require("remark")
 import { Node } from "unist"
-import { HighlighterOptions } from "shiki"
 expect.extend({ toMatchFile })
 
-const getHTML = async (code: string, settings: HighlighterOptions) => {
+const getHTML = async (code: string, settings: any) => {
+  //import("shiki-twoslash").UserConfigSettings) => {
   const markdownAST: Node = remark().parse(code)
-  await gatsbyRemarkShiki({ markdownAST }, settings, {})
+
+  const run = gatsbyRemarkShiki(settings)
+  await run(markdownAST)
 
   // @ts-ignore
   const twoslashes = markdownAST.children.filter(c => c.meta && c.meta.includes("twoslash")).map(c => c.twoslash)
-  const hAST = toHAST(markdownAST, { allowDangerousHTML: true })
+  const hAST = toHAST(markdownAST, { allowDangerousHtml: true })
   return {
-    html: hastToHTML(hAST, { allowDangerousHTML: true }),
+    html: hastToHTML(hAST, { allowDangerousHtml: true }),
     twoslashes,
   }
 }
@@ -37,7 +39,7 @@ describe("with fixtures", () => {
       return
     }
 
-    // if (!fixtureName.includes("exporting")) {
+    // if (fixtureName.includes("Relative")) {
     //   return
     // }
 
@@ -52,6 +54,7 @@ describe("with fixtures", () => {
 
       const results = await getHTML(code, {
         theme: require("../../typescriptlang-org/lib/themes/typescript-beta-light.json"),
+        vfsRoot: join(__dirname, "..", "..", ".."),
       })
 
       const htmlString = format(results.html + style, { parser: "html" })
@@ -107,5 +110,7 @@ color: #ffeeee;
 
 const cleanFixture = (text: string) => {
   const wd = process.cwd()
-  return text.replace(new RegExp(wd, "g"), "[home]")
+  return text
+    .replace(new RegExp(wd, "g"), "[home]")
+    .replace(/\/home\/runner\/work\/TypeScript-Website\/TypeScript-Website/g, "[home]")
 }

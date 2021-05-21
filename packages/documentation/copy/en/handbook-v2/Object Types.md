@@ -3,7 +3,6 @@ title: Object Types
 layout: docs
 permalink: /docs/handbook/2/objects.html
 oneline: "How TypeScript describes the shapes of JavaScript objects."
-beta: true
 ---
 
 In JavaScript, the fundamental way that we group and pass around data is through objects.
@@ -14,7 +13,7 @@ As we've seen, they can be anonymous:
 ```ts twoslash
 function greet(person: { name: string; age: number }) {
   //                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  return "Hello " + person.age;
+  return "Hello " + person.name;
 }
 ```
 
@@ -28,7 +27,7 @@ interface Person {
 }
 
 function greet(person: Person) {
-  return "Hello " + person.age;
+  return "Hello " + person.name;
 }
 ```
 
@@ -42,7 +41,7 @@ type Person = {
 };
 
 function greet(person: Person) {
-  return "Hello " + person.age;
+  return "Hello " + person.name;
 }
 ```
 
@@ -177,10 +176,8 @@ function paintShape({ shape, xPos = 0, yPos = 0 }: PaintOptions) {
 Here we used [a destructuring pattern](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment) for `paintShape`'s parameter, and provided [default values](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment#Default_values) for `xPos` and `yPos`.
 Now `xPos` and `yPos` are both definitely present within the body of `paintShape`, but optional for any callers to `paintShape`.
 
-<aside>
-Note that there is currently no way to place type annotations within destructuring patterns.
-This is because the following syntax already means something different in JavaScript.
-</aside>
+> Note that there is currently no way to place type annotations within destructuring patterns.
+> This is because the following syntax already means something different in JavaScript.
 
 ```ts twoslash
 // @noImplicitAny: false
@@ -268,6 +265,94 @@ console.log(readonlyPerson.age); // prints '42'
 writablePerson.age++;
 console.log(readonlyPerson.age); // prints '43'
 ```
+
+### Index Signatures
+
+Sometimes you don't know all the names of a type's properties ahead of time, but you do know the shape of the values.
+
+In those cases you can use an index signature to describe the types of possible values, for example:
+
+```ts twoslash
+declare function getStringArray(): StringArray;
+// ---cut---
+interface StringArray {
+  [index: number]: string;
+}
+
+const myArray: StringArray = getStringArray();
+const secondItem = myArray[1];
+//     ^?
+```
+
+Above, we have a `StringArray` interface which has an index signature.
+This index signature states that when a `StringArray` is indexed with a `number`, it will return a `string`.
+
+An index signature property type must be either 'string' or 'number'.
+
+<details>
+    <summary>It is possible to support both types of indexers...</summary>
+    <p>It is possible to support both types of indexers, but the type returned from a numeric indexer must be a subtype of the type returned from the string indexer. This is because when indexing with a `number`, JavaScript will actually convert that to a `string` before indexing into an object. That means that indexing with `100` (a `number`) is the same thing as indexing with `"100"` (a `string`), so the two need to be consistent.</p>
+
+```ts twoslash
+// @errors: 2413
+// @strictPropertyInitialization: false
+interface Animal {
+  name: string;
+}
+
+interface Dog extends Animal {
+  breed: string;
+}
+
+// Error: indexing with a numeric string might get you a completely separate type of Animal!
+interface NotOkay {
+  [x: number]: Animal;
+  [x: string]: Dog;
+}
+```
+
+</details>
+
+While string index signatures are a powerful way to describe the "dictionary" pattern, they also enforce that all properties match their return type.
+This is because a string index declares that `obj.property` is also available as `obj["property"]`.
+In the following example, `name`'s type does not match the string index's type, and the type checker gives an error:
+
+```ts twoslash
+// @errors: 2411
+// @errors: 2411
+interface NumberDictionary {
+  [index: string]: number;
+
+  length: number; // ok
+  name: string;
+}
+```
+
+However, properties of different types are acceptable if the index signature is a union of the property types:
+
+```ts twoslash
+interface NumberOrStringDictionary {
+  [index: string]: number | string;
+  length: number; // ok, length is a number
+  name: string; // ok, name is a string
+}
+```
+
+Finally, you can make index signatures `readonly` in order to prevent assignment to their indices:
+
+```ts twoslash
+declare function getReadOnlyStringArray(): ReadonlyStringArray;
+// ---cut---
+// @errors: 2542
+interface ReadonlyStringArray {
+  readonly [index: number]: string;
+}
+
+let myArray: ReadonlyStringArray = getReadOnlyStringArray();
+myArray[2] = "Mallory";
+```
+
+You can't set `myArray[2]` because the index signature is `readonly`.
 
 ## Extending Types
 
@@ -387,9 +472,10 @@ We just looked at two ways to combine types which are similar, but are actually 
 With interfaces, we could use an `extends` clause to extend from other types, and we were able to do something similar with intersections and name the result with a type alias.
 The principle difference between the two is how conflicts are handled, and that difference is typically one of the main reasons why you'd pick one over the other between an interface and a type alias of an intersection type.
 
+<!--
 For example, two types can declare the same property in an interface.
 
-TODO
+TODO -->
 
 ## Generic Object Types
 
@@ -469,29 +555,29 @@ This is frustrating, since our box types and overloads are all effectively the s
 Instead, we can make a _generic_ `Box` type which declares a _type parameter_.
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 ```
 
-You might read this as “A `Box` of `T` is something whose `contents` have type `T`”.
-Later on, when we refer to `Box`, we have to give a _type argument_ in place of `T`.
+You might read this as “A `Box` of `Type` is something whose `contents` have type `Type`”.
+Later on, when we refer to `Box`, we have to give a _type argument_ in place of `Type`.
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 // ---cut---
 let box: Box<string>;
 ```
 
-Think of `Box` as a template for a real type, where `T` is a placeholder that will get replaced with some other type.
-When TypeScript sees `Box<string>`, it will replace every instance of `T` in `Box<T>` with `string`, and end up working with something like `{ contents: string }`.
+Think of `Box` as a template for a real type, where `Type` is a placeholder that will get replaced with some other type.
+When TypeScript sees `Box<string>`, it will replace every instance of `Type` in `Box<Type>` with `string`, and end up working with something like `{ contents: string }`.
 In other words, `Box<string>` and our earlier `StringBox` work identically.
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 interface StringBox {
   contents: string;
@@ -506,11 +592,11 @@ boxB.contents;
 //   ^?
 ```
 
-`Box` is reusable in that `T` can be substituted with anything. That means that when we need a box for a new type, we don't need to declare a new `Box` type at all (though we certainly could if we wanted to).
+`Box` is reusable in that `Type` can be substituted with anything. That means that when we need a box for a new type, we don't need to declare a new `Box` type at all (though we certainly could if we wanted to).
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 
 interface Apple {
@@ -521,32 +607,32 @@ interface Apple {
 type AppleBox = Box<Apple>;
 ```
 
-This also means that we can avoid overloads entirely by instead using [generic functions](./More-on-Functions.md#Generic-Functions).
+This also means that we can avoid overloads entirely by instead using [generic functions](/docs/handbook/2/functions.html#generic-functions).
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 
 // ---cut---
-function setContents<T>(box: Box<T>, newContents: T) {
+function setContents<Type>(box: Box<Type>, newContents: Type) {
   box.contents = newContents;
 }
 ```
 
-It is worth noting that type aliases can also be generic. We could have defined our new `Box<T>` interface, which was:
+It is worth noting that type aliases can also be generic. We could have defined our new `Box<Type>` interface, which was:
 
 ```ts twoslash
-interface Box<T> {
-  contents: T;
+interface Box<Type> {
+  contents: Type;
 }
 ```
 
 by using a type alias instead:
 
 ```ts twoslash
-type Box<T> = {
-  contents: T;
+type Box<Type> = {
+  contents: Type;
 };
 ```
 
@@ -554,11 +640,11 @@ Since type aliases, unlike interfaces, can describe more than just object types,
 
 ```ts twoslash
 // @errors: 2575
-type OrNull<T> = T | null;
+type OrNull<Type> = Type | null;
 
-type OneOrMany<T> = T | T[];
+type OneOrMany<Type> = Type | Type[];
 
-type OneOrManyOrNull<T> = OrNull<OneOrMany<T>>;
+type OneOrManyOrNull<Type> = OrNull<OneOrMany<Type>>;
 //   ^?
 
 type OneOrManyOrNullStrings = OneOrManyOrNull<string>;
@@ -596,7 +682,7 @@ interface String {}
 interface Boolean {}
 interface Symbol {}
 // ---cut---
-interface Array<T> {
+interface Array<Type> {
   /**
    * Gets or sets the length of the array.
    */
@@ -605,12 +691,12 @@ interface Array<T> {
   /**
    * Removes the last element from an array and returns it.
    */
-  pop(): T | undefined;
+  pop(): Type | undefined;
 
   /**
    * Appends new elements to an array, and returns the new length of the array.
    */
-  push(...items: T[]): number;
+  push(...items: Type[]): number;
 
   // ...
 }
@@ -727,14 +813,11 @@ function doSomething(stringHash: [string, number]) {
 }
 ```
 
-<aside>
-Tuple types are useful in heavily convention-based APIs, where each element's meaning is "obvious".
-This gives us flexibility in whatever we want to name our variables when we destructure them.
-In the above example, we were able to name elements `0` and `1` to whatever we wanted.
-
-However, since not every user holds the same view of what's obvious, it may be worth reconsidering whether using objects with descriptive property names may be better for your API.
-
-</aside>
+> Tuple types are useful in heavily convention-based APIs, where each element's meaning is "obvious".
+> This gives us flexibility in whatever we want to name our variables when we destructure them.
+> In the above example, we were able to name elements `0` and `1` to whatever we wanted.
+>
+> However, since not every user holds the same view of what's obvious, it may be worth reconsidering whether using objects with descriptive property names may be better for your API.
 
 Other than those length checks, simple tuple types like these are equivalent to types which are versions of `Array`s that declare properties for specific indexes, and that declare `length` with a numeric literal type.
 
@@ -789,7 +872,7 @@ const c: StringNumberBooleans = ["world", 3, true, false, true, false, true];
 
 Why might optional and rest elements be useful?
 Well, it allows TypeScript to correspond tuples with parameter lists.
-Tuples types can be used in [rest parameters and arguments](./More-on-Functions.md#rest-parameters-and-arguments), so that the following:
+Tuples types can be used in [rest parameters and arguments](/docs/handbook/2/functions.html#rest-parameters-and-arguments), so that the following:
 
 ```ts twoslash
 function readButtonInput(...args: [string, number, ...boolean[]]) {
@@ -838,7 +921,7 @@ function foo(a: number, b: number, ...args: number[]) {
 
 ### `readonly` Tuple Types
 
-One final note about tuple types - tuples types have `readonly` variants, and can be specified by sticking a `readonly` modifier in front of them - just like with array shorthands.
+One final note about tuple types - tuples types have `readonly` variants, and can be specified by sticking a `readonly` modifier in front of them - just like with array shorthand syntax.
 
 ```ts twoslash
 function doSomething(pair: readonly [string, number]) {
@@ -873,7 +956,7 @@ distanceFromOrigin(point);
 Here, `distanceFromOrigin` never modifies its elements, but expects a mutable tuple.
 Since `point`'s type was inferred as `readonly [3, 4]`, it won't be compatible with `[number, number]` since that type can't guarantee `point`'s elements won't be mutated.
 
-## Other Kinds of Object Members
+<!-- ## Other Kinds of Object Members
 
 Most of the declarations in object types:
 
@@ -883,4 +966,4 @@ Most of the declarations in object types:
 
 ### Construct Signatures
 
-### Index Signatures
+### Index Signatures -->

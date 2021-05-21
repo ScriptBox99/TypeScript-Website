@@ -2,13 +2,15 @@
 // Data-dump all the TSConfig options
 
 /** Run with:
-     node --inspect-brk ./node_modules/.bin/ts-node packages/tsconfig-reference/scripts/generateJSON.ts
-     yarn ts-node packages/tsconfig-reference/scripts/generateJSON.ts
+     node --inspect-brk ./node_modules/.bin/ts-node packages/tsconfig-reference/scripts/tsconfig/generateJSON.ts
+     yarn ts-node packages/tsconfig-reference/scripts/tsconfig/generateJSON.ts
 */
+
+console.log("TSConfig Ref: JSON for TSConfig");
 
 import * as ts from "typescript";
 
-import { CommandLineOptionBase } from "./types";
+import { CommandLineOptionBase } from "../types";
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { format } from "prettier";
@@ -22,14 +24,14 @@ import {
   allowedValues,
   configToRelease,
   additionalOptionDescriptors,
-} from "./tsconfigRules";
-import { CompilerOptionName } from "../data/_types";
+} from "../tsconfigRules";
+import { CompilerOptionName } from "../../data/_types";
 
 const toJSONString = (obj) => format(JSON.stringify(obj, null, "  "), { filepath: "thing.json" });
 const writeJSON = (name, obj) =>
-  writeFileSync(join(__dirname, "..", "data", name), toJSONString(obj));
+  writeFileSync(join(__dirname, "..", "..", "data", name), toJSONString(obj));
 const writeString = (name, text) =>
-  writeFileSync(join(__dirname, "..", "data", name), format(text, { filepath: name }));
+  writeFileSync(join(__dirname, "..", "..", "data", name), format(text, { filepath: name }));
 
 export interface CompilerOptionJSON extends CommandLineOptionBase {
   releaseVersion?: string;
@@ -43,14 +45,29 @@ export interface CompilerOptionJSON extends CommandLineOptionBase {
   hostObj: string;
 }
 
-// @ts-ignore because this is private
-const options = ts.optionDeclarations as CompilerOptionJSON[];
+// These are all
+const options = [
+  // @ts-ignore
+  ...ts.optionDeclarations,
+  // @ts-ignore
+  ...ts.optionsForWatch,
+  // @ts-ignore
+  ...ts.buildOpts,
+  // @ts-ignore
+  ...ts.typeAcquisitionDeclarations,
+].filter((item, pos, arr) => arr.indexOf(item) == pos) as CompilerOptionJSON[];
+
 const categories = new Set<ts.DiagnosticMessage>();
 
 // Cut down the list
 const filteredOptions = options
   .filter((o) => !denyList.includes(o.name as CompilerOptionName))
   .filter((o) => !o.isCommandLineOnly);
+
+// The import from TS isn't 'clean'
+const buildOpts = ["build", "verbose", "dry", "clean", "force"];
+// @ts-ignore
+const watchOpts = [...ts.optionsForWatch.map((opt) => opt.name), "watch"];
 
 // We don't get structured data for all compiler flags (especially ones which aren't in 'compilerOptions')
 // so, create these manually.
@@ -101,17 +118,6 @@ const topLevelTSConfigOptions: CompilerOptionJSON[] = [
     hostObj: "top_level",
   },
   {
-    name: "typeAcquisition",
-    type: "string",
-    categoryCode: 0,
-    // @ts-ignore
-    description: {
-      message: "Print names of files part of the compilation.",
-    },
-    defaultValue: "false",
-    hostObj: "top_level",
-  },
-  {
     name: "references",
     type: "string",
     categoryCode: 0,
@@ -121,47 +127,10 @@ const topLevelTSConfigOptions: CompilerOptionJSON[] = [
     },
     defaultValue: "false",
     hostObj: "top_level",
-  }
-];
-
-const watchOptions: CompilerOptionJSON[] = [
-  {
-    name: "watchFile",
-    type: "string",
-    categoryCode: 999,
-    // @ts-ignore
-    description: {
-      message: "The strategy for how individual files are watched.",
-    },
-    defaultValue: "useFsEvents",
-    hostObj: "watchOptions",
-  },
-  {
-    name: "watchDirectory",
-    type: "list",
-    categoryCode: 999,
-    // @ts-ignore
-    description: {
-      message:
-        "The strategy for how entire directory trees are watched under systems that lack recursive file-watching functionality.",
-    },
-    defaultValue: "useFsEvents",
-    hostObj: "watchOptions",
-  },
-  {
-    name: "fallbackPolling",
-    type: "list",
-    categoryCode: 999,
-    // @ts-ignore
-    description: {
-      message:
-        "The polling strategy that gets used when the system runs out of native file watchers.",
-    },
-    hostObj: "watchOptions",
   },
 ];
 
-const allOptions = [...topLevelTSConfigOptions, ...filteredOptions, ...watchOptions].sort((l, r) =>
+const allOptions = [...topLevelTSConfigOptions, ...filteredOptions].sort((l, r) =>
   l.name.localeCompare(r.name)
 );
 
@@ -217,7 +186,9 @@ allOptions.forEach((option) => {
     option.defaultValue = defaultsForOptions[name];
   }
 
-  option.hostObj = "compilerOptions";
+  if (buildOpts.includes(name)) option.hostObj = "build";
+  else if (watchOpts.includes(name)) option.hostObj = "watchOptions";
+  else option.hostObj = "compilerOptions";
 
   // Remove irrelevant properties
   delete option.shortName;

@@ -5,8 +5,6 @@ permalink: /docs/handbook/2/basic-types.html
 oneline: "Step one in learning TypeScript: The basic types."
 preamble: >
   <p>Welcome to the first page of the handbook, if this is your first experience with TypeScript - you may want to start at one of the '<a href='https://www.typescriptlang.org/docs/handbook/intro.html#get-started'>Getting Started</a>' guides</a>
-
-beta: true
 ---
 
 Each and every value in JavaScript has a set of behaviors you can observe from running different operations.
@@ -52,7 +50,7 @@ TypeError: message is not a function
 It'd be great if we could avoid mistakes like this.
 
 When we run our code, the way that our JavaScript runtime chooses what to do is by figuring out the _type_ of the value - what sorts of behaviors and capabilities it has.
-That's part of what that `TypeError` is alluding to - it's saying that the string `"Hello World"` cannot be called as a function.
+That's part of what that `TypeError` is alluding to - it's saying that the string `"Hello World!"` cannot be called as a function.
 
 For some values, such as the primitives `string` and `number`, we can identify their type at runtime using the `typeof` operator.
 But for other things like functions, there's no corresponding runtime mechanism to identify their types.
@@ -345,7 +343,7 @@ let msg = "hello there!";
 Even though we didn't tell TypeScript that `msg` had the type `string` it was able to figure that out.
 That's a feature, and it's best not to add annotations when the type system would end up inferring the same type anyway.
 
-> Note: when you see <pre><code class="query">code comment colored like this</code></pre> it means that we're highlighting what your editor would show you inline. You can get the same experience in the web browser by hovering your mouse over blue-tinted code samples.
+> Note: the message bubble inside the code sample above. That is what your editor would show if you had hovered over the word.
 
 ## Erased Types
 
@@ -396,7 +394,7 @@ This process of moving from a newer or "higher" version of ECMAScript down to an
 By default TypeScript targets ES3, an extremely old version of ECMAScript.
 We could have chosen something a little bit more recent by using the `--target` flag.
 Running with `--target es2015` changes TypeScript to target ECMAScript 2015, meaning code should be able to run wherever ECMAScript 2015 is supported.
-So running `tsc --target es2015 input.ts` gives us the following output:
+So running `tsc --target es2015 hello.ts` gives us the following output:
 
 ```js
 function greet(person, date) {
@@ -418,7 +416,7 @@ If you're migrating existing JavaScript, that might be a desirable first step.
 
 In contrast, a lot of users prefer to have TypeScript validate as much as it can straight away, and that's why the language provides strictness settings as well.
 These strictness settings turn static type-checking from a switch (either your code is checked or not) into something closer to a dial.
-The farther you turn this dial up, the more TypeScript will check for you.
+The further you turn this dial up, the more TypeScript will check for you.
 This can require a little extra work, but generally speaking it pays for itself in the long run, and enables more thorough checks and more accurate tooling.
 When possible, a new codebase should always turn these strictness checks on.
 

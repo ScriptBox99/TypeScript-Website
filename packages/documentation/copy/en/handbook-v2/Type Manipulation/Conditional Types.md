@@ -3,7 +3,6 @@ title: Conditional Types
 layout: docs
 permalink: /docs/handbook/2/conditional-types.html
 oneline: "Create types which act like if statements in the type system."
-beta: true
 ---
 
 At the heart of most useful programs, we have to make decisions based on input.
@@ -189,8 +188,8 @@ For example, we could have inferred the element type in `Flatten` instead of fet
 type Flatten<Type> = Type extends Array<infer Item> ? Item : Type;
 ```
 
-Here, we used the `infer` keyword declaratively introduced a new generic type variable named `U` instead of specifying how to retrieve the element type of `T` within the true branch.
-This frees us from having to think about how to dig through and probing apart the structure of the types we're interested.
+Here, we used the `infer` keyword to declaratively introduce a new generic type variable named `Item` instead of specifying how to retrieve the element type of `T` within the true branch.
+This frees us from having to think about how to dig through and probing apart the structure of the types we're interested in.
 
 We can write some useful helper type aliases using the `infer` keyword.
 For example, for simple cases, we can extract the return type out from function types:
@@ -207,6 +206,17 @@ type Str = GetReturnType<(x: string) => string>;
 //   ^?
 
 type Bools = GetReturnType<(a: boolean, b: boolean) => boolean[]>;
+//   ^?
+```
+
+When inferring from a type with multiple call signatures (such as the type of an overloaded function), inferences are made from the _last_ signature (which, presumably, is the most permissive catch-all case). It is not possible to perform overload resolution based on a list of argument types.
+
+```ts twoslash
+declare function stringOrNum(x: string): number;
+declare function stringOrNum(x: number): string;
+declare function stringOrNum(x: string | number): string | number;
+
+type T1 = ReturnType<typeof stringOrNum>;
 //   ^?
 ```
 

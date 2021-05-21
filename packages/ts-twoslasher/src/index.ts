@@ -155,7 +155,7 @@ function setOption(name: string, value: string, opts: CompilerOptions, ts: TS) {
         case "list":
           const elementType = opt.element!.type
           const strings = value.split(",")
-          if (typeof elementType === 'string') {
+          if (typeof elementType === "string") {
             opts[opt.name] = strings.map(v => parsePrimitive(v, elementType))
           } else {
             opts[opt.name] = strings.map(v => getOptionValueFromMap(opt.name, v, elementType as Map<string, string>))
@@ -407,7 +407,8 @@ export function twoslasher(code: string, extension: string, options: TwoSlashOpt
   }
 
   const getRoot = () => {
-    const path = require("path")
+    const pa = "pa"
+    const path = require(pa + "th") as typeof import("path")
     const rootPath = options.vfsRoot || process.cwd()
     return rootPath.split(path.sep).join(path.posix.sep)
   }
@@ -458,13 +459,12 @@ export function twoslasher(code: string, extension: string, options: TwoSlashOpt
       switch (q.kind) {
         case "query": {
           const quickInfo = ls.getQuickInfoAtPosition(filename, position)
-          const token = ls.getDefinitionAtPosition(filename, position)
 
           // prettier-ignore
           let text = `Could not get LSP result: ${stringAroundIndex(env.getSourceFile(filename)!.text, position)}`
           let docs = undefined
 
-          if (quickInfo && token && quickInfo.displayParts) {
+          if (quickInfo && quickInfo.displayParts) {
             text = quickInfo.displayParts.map(dp => dp.text).join("")
             docs = quickInfo.documentation ? quickInfo.documentation.map(d => d.text).join("<br/>") : undefined
           }

@@ -19,11 +19,13 @@ type Monaco = typeof import("monaco-editor")
  * These are settings for the playground which are the equivalent to props in React
  * any changes to it should require a new setup of the playground
  */
-export type PlaygroundConfig = {
+export type SandboxConfig = {
   /** The default source code for the playground */
   text: string
-  /** Should it run the ts or js IDE services */
-  useJavaScript: boolean
+  /** @deprecated */
+  useJavaScript?: boolean
+  /** The default file for the plaayground  */
+  filetype: "js" | "ts" | "d.ts"
   /** Compiler options which are automatically just forwarded on */
   compilerOptions: CompilerOptions
   /** Optional monaco settings overrides */
@@ -48,7 +50,7 @@ export type PlaygroundConfig = {
   | { /** theID of a dom node to add monaco to */ elementToAppend: HTMLElement }
 )
 
-const languageType = (config: PlaygroundConfig) => (config.useJavaScript ? "javascript" : "typescript")
+const languageType = (config: SandboxConfig) => (config.filetype === "js" ? "javascript" : "typescript")
 
 // Basically android and monaco is pretty bad, this makes it less bad
 // See https://github.com/microsoft/pxt/pull/7099 for this, and the long
@@ -77,33 +79,32 @@ const sharedEditorOptions: import("monaco-editor").editor.IEditorOptions = {
 
 /** The default settings which we apply a partial over */
 export function defaultPlaygroundSettings() {
-  const config: PlaygroundConfig = {
+  const config: SandboxConfig = {
     text: "",
     domID: "",
     compilerOptions: {},
     acquireTypes: true,
-    useJavaScript: false,
+    filetype: "ts",
     supportTwoslashCompilerOptions: false,
     logger: console,
   }
   return config
 }
 
-function defaultFilePath(config: PlaygroundConfig, compilerOptions: CompilerOptions, monaco: Monaco) {
+function defaultFilePath(config: SandboxConfig, compilerOptions: CompilerOptions, monaco: Monaco) {
   const isJSX = compilerOptions.jsx !== monaco.languages.typescript.JsxEmit.None
-  const fileExt = config.useJavaScript ? "js" : "ts"
-  const ext = isJSX ? fileExt + "x" : fileExt
+  const ext = isJSX && config.filetype !== "d.ts" ? config.filetype + "x" : config.filetype
   return "input." + ext
 }
 
 /** Creates a monaco file reference, basically a fancy path */
-function createFileUri(config: PlaygroundConfig, compilerOptions: CompilerOptions, monaco: Monaco) {
+function createFileUri(config: SandboxConfig, compilerOptions: CompilerOptions, monaco: Monaco) {
   return monaco.Uri.file(defaultFilePath(config, compilerOptions, monaco))
 }
 
 /** Creates a sandbox editor, and returns a set of useful functions and the editor */
 export const createTypeScriptSandbox = (
-  partialConfig: Partial<PlaygroundConfig>,
+  partialConfig: Partial<SandboxConfig>,
   monaco: Monaco,
   ts: typeof import("typescript")
 ) => {
@@ -130,8 +131,9 @@ export const createTypeScriptSandbox = (
     compilerOptions = compilerDefaults
   }
 
-  // Don't allow a state like allowJs = false, and useJavascript = true
-  if (config.useJavaScript) {
+  const isJSLang = config.filetype === "js"
+  // Don't allow a state like allowJs = false
+  if (isJSLang) {
     compilerOptions.allowJs = true
   }
 
@@ -147,11 +149,11 @@ export const createTypeScriptSandbox = (
   const monacoSettings = Object.assign({ model }, sharedEditorOptions, config.monacoSettings || {})
   const editor = monaco.editor.create(element, monacoSettings)
 
-  const getWorker = config.useJavaScript
+  const getWorker = isJSLang
     ? monaco.languages.typescript.getJavaScriptWorker
     : monaco.languages.typescript.getTypeScriptWorker
 
-  const defaults = config.useJavaScript
+  const defaults = isJSLang
     ? monaco.languages.typescript.javascriptDefaults
     : monaco.languages.typescript.typescriptDefaults
 
@@ -179,7 +181,7 @@ export const createTypeScriptSandbox = (
     const langs = ["javascript", "typescript"]
     langs.forEach(l =>
       monaco.languages.registerCompletionItemProvider(l, {
-        triggerCharacters: ["@", "/"],
+        triggerCharacters: ["@", "/", "-"],
         provideCompletionItems: twoslashCompletions(ts, monaco),
       })
     )
@@ -295,9 +297,12 @@ export const createTypeScriptSandbox = (
   const getText = () => getModel().getValue()
   const setText = (text: string) => getModel().setValue(text)
 
-  const setupTSVFS = async () => {
+  const setupTSVFS = async (fsMapAdditions?: Map<string, string>) => {
     const fsMap = await tsvfs.createDefaultMapFromCDN(compilerOptions, ts.version, true, ts, lzstring)
     fsMap.set(filePath.path, getText())
+    if (fsMapAdditions) {
+      fsMapAdditions.forEach((v, k) => fsMap.set(k, v))
+    }
 
     const system = tsvfs.createSystem(fsMap)
     const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, ts)
@@ -379,6 +384,8 @@ export const createTypeScriptSandbox = (
      *
      * Try to use this sparingly as it can be computationally expensive, at the minimum you should be using the debounced setup.
      *
+     * Accepts an optional fsMap which you can use to add any files, or overwrite the default file.
+     *
      * TODO: It would be good to create an easy way to have a single program instance which is updated for you
      * when the monaco model changes.
      */
@@ -407,6 +414,8 @@ export const createTypeScriptSandbox = (
     languageServiceDefaults: defaults,
     /** The path which represents the current file using the current compiler options */
     filepath: filePath.path,
+    /** Adds a file to the vfs used by the editor */
+    addLibraryToRuntime,
   }
 }
 

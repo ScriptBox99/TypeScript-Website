@@ -37,17 +37,23 @@ Or the site will fail the build. Once that file is ready, add it to the sidebar 
 
 ##### TSConfig Reference
 
-Updating the version of TypeScript will force you to update the TSConfig Reference. It will fail incrementally with each missing compiler flag.
+Updating the version of TypeScript will force you to update the TSConfig Reference and JSON Schema. It will fail incrementally with each missing compiler flag.
 
 For each new flag:
 
 - Add a markdown file for the new compiler flags. The build will crash and give you a command to run which will set that up.
+
+- Add the flag to the JSON [schema base file](https://github.com/microsoft/TypeScript-website/blob/v2/packages/tsconfig-reference/scripts/schema/result/schema.json). You can leave descriptions blank in there as it will be added by the site.
 
 - Update [tsconfigRules.ts](https://github.com/microsoft/TypeScript-website/blob/v2/packages/tsconfig-reference/scripts/tsconfigRules.ts#L16) - with things like:
 
   - Default values
   - Linking compiler versions
   - Add a new section to `releaseToConfigsMap` for your version
+
+#### Playground
+
+The tag should be automatically generated on a [daily basis](https://github.com/microsoft/TypeScript-Make-Monaco-Builds/actions/workflows/nightly_check_prod_deploys.yml) - so you shouldn't have to do anything
 
 ##### Tests
 
@@ -62,11 +68,24 @@ Unless something drastic has change, you shouldn't need to do anything. You coul
 
 ### Release
 
-#### Playground
+#### Release Notes
 
-Make a tag for the final version in [`orta/make-monaco-builds`](https://github.com/orta/make-monaco-builds/) e.g. `git tag 3.9.3` and push it up.
+Grab the markdown from the [blog posts repo](https://github.com/microsoft/TypeScript-blog-posts), create a file like: `packages/documentation/copy/en/release-notes/TypeScript 3.9.md`
 
-Remove the link to the beta in the dropdowns in: [`packages/playground/src/index.ts`](https://github.com/microsoft/TypeScript-website/blob/v2/packages/playground/src/index.ts) because it will be auto-generated now.
+Grab the header info from a previous release notes, and add it to your new version:
+
+```md
+---
+title: TypeScript 3.9
+layout: docs
+permalink: /docs/handbook/release-notes/typescript-3-9.html
+oneline: TypeScript 3.9 Release Notes
+---
+```
+
+You can add twoslash to the code samples if you want.
+
+When you're happy with that, then edit [`packages/documentation/copy/en/release-notes/Overview.md](https://github.com/microsoft/TypeScript-website/blob/v2/packages/documentation/copy/en/release-notes/Overview.md) to include the changes you just added, and simplify descriptions.
 
 ##### Index
 
@@ -86,3 +105,27 @@ The homepage keeps track of upcoming dates via this file: [`packages/typescriptl
 
 You might not have these dates yet, at the current release (it took about a week last time to get the dates) - leaving
 this is fine and the site will accommodate the dates not being ready yet.
+
+##### Update Schema Store
+
+Using the GitHub CLI, from the root of the repo
+
+```
+# Clone a copy and move in new file
+gh repo clone https://github.com/SchemaStore/schemastore.git /tmp/schemastore
+cp packages/tsconfig-reference/scripts/schema/result/schema.json /tmp/schemastore/src/schemas/json/tsconfig.json
+
+# Go in and set up the changes
+cd /tmp/schemastore
+gh repo fork
+git add .
+git commit -m "Update tsconfig.json schema"
+
+# Validate it didn't break
+cd src
+npm ci
+npm run build
+
+# Shippit
+gh pr create --web
+```

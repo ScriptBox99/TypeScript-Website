@@ -13,6 +13,7 @@ import { headCopy } from "../copy/en/head-seo"
 import { playCopy } from "../copy/en/playground"
 
 import { Intl } from "../components/Intl"
+import "reflect-metadata"
 
 import playgroundReleases from "../../../sandbox/src/releases.json"
 
@@ -59,7 +60,7 @@ const Play: React.FC<Props> = (props) => {
     window.react = React
     // @ts-ignore - for React-based plugins
     window.reactDOM = ReactDOM
-    // @ts-ignore - so that plugins etc can use i8n
+    // @ts-ignore - so that plugins etc can use i18n
     window.i = i
 
     const getLoaderScript = document.createElement('script');
@@ -111,8 +112,8 @@ const Play: React.FC<Props> = (props) => {
           vs: urlForMonaco,
           "typescript-sandbox": withPrefix('/js/sandbox'),
           "typescript-playground": withPrefix('/js/playground'),
-          "unpkg": "https://unpkg.com/",
-          "local": "http://localhost:5000"
+          "unpkg": "https://unpkg.com",
+          "local": "http://localhost:5000",
         },
         ignoreDuplicateModules: ["vs/editor/editor.main"],
         catchError: true,
@@ -150,7 +151,7 @@ const Play: React.FC<Props> = (props) => {
           text: localStorage.getItem('sandbox-history') || i("play_default_code_sample"),
           compilerOptions: {},
           domID: "monaco-editor-embed",
-          useJavaScript: !!params.get("useJavaScript"),
+          filetype: (!!params.get("useJavaScript") ? "js" : params.get("filetype") || "ts") as any,
           acquireTypes: !localStorage.getItem("disable-ata"),
           supportTwoslashCompilerOptions: true,
           monacoSettings: {
@@ -201,6 +202,7 @@ const Play: React.FC<Props> = (props) => {
                     <span className="select-label">Lang</span>
                     <select id="language-selector">
                       <option>TypeScript</option>
+                      <option>TypeScript Definitions</option>
                       <option>JavaScript</option>
                     </select>
                     <span className="compiler-flag-blurb">{i("play_config_language_blurb")}</span>

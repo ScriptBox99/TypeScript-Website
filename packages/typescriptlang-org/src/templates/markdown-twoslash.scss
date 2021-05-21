@@ -1,3 +1,5 @@
+@import "../style/globals.scss";
+
 /* Code blocks look like: 
 
 <pre class='shiki lsp twoslash'>
@@ -25,6 +27,7 @@ pre {
 
   /* Important to allow the code to move horizontally; */
   overflow: auto;
+
   &.shiki {
     overflow: initial;
 
@@ -45,6 +48,10 @@ pre {
     div.highlight {
       opacity: 1;
       background-color: #f1f8ff;
+    }
+
+    div.line {
+      min-height: 1rem;
     }
   }
 
@@ -152,6 +159,31 @@ pre {
   .error-behind {
     user-select: none;
     color: #ffeeee;
+  }
+
+  .arrow {
+    /* Transparent background */
+    background-color: #eeeeee;
+    position: relative;
+    top: -7px;
+    margin-left: 0.1rem;
+    /* Edges */
+    border-left: 1px solid #eeeeee;
+    border-top: 1px solid #eeeeee;
+    transform: translateY(25%) rotate(45deg);
+
+    /* Size */
+    height: 8px;
+    width: 8px;
+  }
+
+  .popover {
+    margin-bottom: 10px;
+    background-color: #eeeeee;
+    display: inline-block;
+    padding: 0 0.5rem 0.3rem;
+    margin-top: 10px;
+    border-radius: 3px;
   }
 
   .inline-completions {

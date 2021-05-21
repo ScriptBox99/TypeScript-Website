@@ -24,10 +24,7 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: commonjs
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
@@ -38,10 +35,7 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: umd
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
@@ -52,10 +46,7 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: amd
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
@@ -66,10 +57,7 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: system
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
@@ -80,10 +68,7 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: esnext
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
@@ -94,24 +79,20 @@ export const twoPi = valueOfPi * 2;
 ```ts twoslash
 // @showEmit
 // @module: es2020
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;
 ```
+
+If you are wondering about the difference between ES2015 and ES2020, ES2020 adds support for dynamic `import`s, and `import.meta`.
 
 ### `None`
 
 ```ts twoslash
 // @showEmit
 // @module: none
-// @filename: constants.ts
-export const valueOfPi = 3.142;
-// ---cut---
-// @filename: index.ts
+// @noErrors
 import { valueOfPi } from "./constants";
 
 export const twoPi = valueOfPi * 2;

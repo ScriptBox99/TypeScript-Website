@@ -3,7 +3,6 @@ title: More on Functions
 layout: docs
 permalink: /docs/handbook/2/functions.html
 oneline: "Learn about how Functions work in TypeScript."
-beta: true
 ---
 
 Functions are the basic building block of any application, whether they're local functions, imported from another module, or methods on a class.
@@ -135,12 +134,12 @@ function map<Input, Output>(arr: Input[], func: (arg: Input) => Output): Output[
   return arr.map(func);
 }
 
-// Parameter 'n' is of type 'number'
+// Parameter 'n' is of type 'string'
 // 'parsed' is of type 'number[]'
 const parsed = map(["1", "2", "3"], (n) => parseInt(n));
 ```
 
-Note that in this example, TypeScript could infer both the type of the `E` type parameter (from the given `string` array), as well as the type `O` based on the return value of the function expression.
+Note that in this example, TypeScript could infer both the type of the `Input` type parameter (from the given `string` array), as well as the `Output` type parameter based on the return value of the function expression (`number`).
 
 ### Constraints
 
@@ -174,7 +173,7 @@ There are few interesting things to note in this example.
 We allowed TypeScript to _infer_ the return type of `longest`.
 Return type inference also works on generic functions.
 
-Because we constrained `T` to `{ length: number }`, we were allowed to access the `.length` property of the `a` and `b` parameters.
+Because we constrained `Type` to `{ length: number }`, we were allowed to access the `.length` property of the `a` and `b` parameters.
 Without the type constraint, we wouldn't be able to access those properties because the values might have been some other type without a length property.
 
 The types of `longerArray` and `longerString` were inferred based on the arguments.
@@ -200,7 +199,7 @@ function minimumLength<Type extends { length: number }>(
 }
 ```
 
-It might look like this function is OK - `T` is constrained to `{ length: number }`, and the function either returns `T` or a value matching that constraint.
+It might look like this function is OK - `Type` is constrained to `{ length: number }`, and the function either returns `Type` or a value matching that constraint.
 The problem is that the function promises to return the _same_ kind of object as was passed in, not just _some_ object matching the constraint.
 If this code were legal, you could write code that definitely wouldn't work:
 
@@ -223,7 +222,7 @@ TypeScript can usually infer the intended type arguments in a generic call, but 
 For example, let's say you wrote a function to combine two arrays:
 
 ```ts twoslash
-function combine<T>(arr1: T[], arr2: T[]): T[] {
+function combine<Type>(arr1: Type[], arr2: Type[]): Type[] {
   return arr1.concat(arr2);
 }
 ```
@@ -299,7 +298,7 @@ That's always a red flag, because it means callers wanting to specify type argum
 
 #### Type Parameters Should Appear Twice
 
-Sometimes we forget that function doesn't need to be generic:
+Sometimes we forget that a function might not need to be generic:
 
 ```ts twoslash
 function greet<Str extends string>(s: Str) {
@@ -355,7 +354,7 @@ function f(x = 10) {
 ```
 
 Now in the body of `f`, `x` will have type `number` because any `undefined` argument will be replaced with `10`.
-Note that when a parameter is optional, callers can always pass `undefined`, as this simply simualtes a "missing" argument:
+Note that when a parameter is optional, callers can always pass `undefined`, as this simply simulates a "missing" argument:
 
 ```ts twoslash
 declare function f(x?: number): void;
@@ -378,7 +377,7 @@ function myForEach(arr: any[], callback: (arg: any, index?: number) => void) {
 }
 ```
 
-What people usually _intend_ when writing `index?` as an optional parameter is that they want both of these calls to be legal:
+What people usually intend when writing `index?` as an optional parameter is that they want both of these calls to be legal:
 
 ```ts twoslash
 // @errors: 2532
@@ -538,6 +537,58 @@ Callers can invoke this with either sort of value, and as an added bonus, we don
 
 > Always prefer parameters with union types instead of overloads when possible
 
+### Declaring `this` in a Function
+
+TypeScript will infer what the `this` should be in a function via code flow analysis, for example in the following:
+
+```ts twoslash
+const user = {
+  id: 123,
+
+  admin: false,
+  becomeAdmin: function () {
+    this.admin = true;
+  },
+};
+```
+
+TypeScript understands that the function `user.becomeAdmin` has a corresponding `this` which is the outer object `user`. `this`, _heh_, can be enough for a lot of cases, but there are a lot of cases where you need more control over what object `this` represents. The JavaScript specification states that you cannot have a parameter called `this`, and so TypeScript uses that syntax space to let you declare the type for `this` in the function body.
+
+```ts twoslash
+interface User {
+  id: number;
+  admin: boolean;
+}
+declare const getDB: () => DB;
+// ---cut---
+interface DB {
+  filterUsers(filter: (this: User) => boolean): User[];
+}
+
+const db = getDB();
+const admins = db.filterUsers(function (this: User) {
+  return this.admin;
+});
+```
+
+This pattern is common with callback-style APIs, where another object typically controls when your function is called. Note that you need to use `function` and not arrow functions to get this behavior:
+
+```ts twoslash
+// @errors: 7041 7017
+interface User {
+  id: number;
+  isAdmin: boolean;
+}
+declare const getDB: () => DB;
+// ---cut---
+interface DB {
+  filterUsers(filter: (this: User) => boolean): User[];
+}
+
+const db = getDB();
+const admins = db.filterUsers(() => this.admin);
+```
+
 ## Other Types to Know About
 
 There are some additional types you'll want to recognize that appear often when working with function types.
@@ -557,7 +608,7 @@ function noop() {
 
 In JavaScript, a function that doesn't return any value will implicitly return the value `undefined`.
 However, `void` and `undefined` are not the same thing in TypeScript.
-See the reference page [[Why void is a special type]] for a longer discussion about this.
+There are further details at the end of this chapter.
 
 > `void` is not the same as `undefined`.
 
@@ -565,7 +616,7 @@ See the reference page [[Why void is a special type]] for a longer discussion ab
 
 The special type `object` refers to any value that isn't a primitive (`string`, `number`, `boolean`, `symbol`, `null`, or `undefined`).
 This is different from the _empty object type_ `{ }`, and also different from the global type `Object`.
-You can read the reference page about [[The global types]] for information on what `Object` is for - long story short, don't ever use `Object`.
+It's very likely you will never use `Object`.
 
 > `object` is not `Object`. **Always** use `object`!
 
@@ -642,11 +693,16 @@ function doSomething(f: Function) {
 
 This is an _untyped function call_ and is generally best avoided because of the unsafe `any` return type.
 
-If need to accept an arbitrary function but don't intend to call it, the type `() => void` is generally safer.
+If you need to accept an arbitrary function but don't intend to call it, the type `() => void` is generally safer.
 
 ## Rest Parameters and Arguments
 
-**Background reading**: [Rest Parameters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/rest_parameters) and [Spread Syntax](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax)
+<blockquote class='bg-reading'>
+   <p>Background Reading:<br />
+   <a href='https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/rest_parameters'>Rest Parameters</a><br/>
+   <a href='https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax'>Spread Syntax</a><br/>
+   </p>
+</blockquote>
 
 ### Rest Parameters
 
@@ -681,7 +737,7 @@ This can lead to some surprising behavior:
 ```ts twoslash
 // @errors: 2556
 // Inferred type is number[] -- "an array with zero or more numbers",
-// not specfically two numbers
+// not specifically two numbers
 const args = [8, 5];
 const angle = Math.atan2(...args);
 ```
@@ -695,11 +751,17 @@ const args = [8, 5] as const;
 const angle = Math.atan2(...args);
 ```
 
+Using rest arguments may require turning on [`downlevelIteration`](/tsconfig/#downlevelIteration) when targeting older runtimes.
+
 <!-- TODO link to downlevel iteration -->
 
 ## Parameter Destructuring
 
-> > **Background reading**: [Destructuring Assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment)
+<blockquote class='bg-reading'>
+   <p>Background Reading:<br />
+   <a href='https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment'>Destructuring Assignment</a><br/>
+   </p>
+</blockquote>
 
 You can use parameter destructuring to conveniently unpack objects provided as an argument into one or more local variables in the function body.
 In JavaScript, it looks like this:

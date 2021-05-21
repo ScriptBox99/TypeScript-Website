@@ -3,7 +3,7 @@ type TwoSlash = import("@typescript/twoslash").TwoSlashReturn
 
 import { shouldBeHighlightable, shouldHighlightLine } from "../parseCodeFenceInfo"
 import { stripHTML, createHighlightedString2, subTripleArrow, replaceTripleArrowEncoded, escapeHtml } from "../utils"
-import { HtmlRendererOptions } from "./plain"
+import { HtmlRendererOptions, preOpenerFromRenderingOptsWithExtras } from "./plain"
 
 // OK, so - this is just straight up complex code.
 
@@ -19,7 +19,7 @@ import { HtmlRendererOptions } from "./plain"
 //
 // - Twoslash results can be cut, so sometimes there is edge cases between twoslash results
 // - Twoslash results can be multi-file
-// - the DOM requires a flattened graph of html elements
+// - the DOM requires a flattened graph of html elements (e.g. spans can' be interspersed)
 //
 
 export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, twoslash: TwoSlash, codefenceMeta: any) {
@@ -28,7 +28,7 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
   const hasHighlight = shouldBeHighlightable(codefenceMeta)
   const hl = shouldHighlightLine(codefenceMeta)
 
-  html += `<pre class="shiki twoslash lsp">`
+  html += preOpenerFromRenderingOptsWithExtras(options, codefenceMeta, ["twoslash", "lsp"])
   if (options.langId) {
     html += `<div class="language-id">${options.langId}</div>`
   }
@@ -66,6 +66,8 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
       let tokenPos = 0
 
       l.forEach(token => {
+        let targetedQueryWord: typeof twoslash.staticQuickInfos[number] | undefined
+
         let tokenContent = ""
         // Underlining particular words
         const findTokenFunc = (start: number) => (e: any) =>
@@ -85,6 +87,9 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
         const errorsInToken = errors.filter(findTokenFunc(tokenPos))
         const lspResponsesInToken = lspValues.filter(findTokenFunc(tokenPos))
         const queriesInToken = queries.filter(findTokenFunc(tokenPos))
+
+        // Does this line have a word targeted by a query?
+        targetedQueryWord ||= lspResponsesInToken.find(response => response.text === (queries.length && queries[0].text))!
 
         const allTokens = [...errorsInToken, ...lspResponsesInToken, ...queriesInToken]
         const allTokensByStart = allTokens.sort((l, r) => {
@@ -113,7 +118,7 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
             return range
           })
 
-          tokenContent += createHighlightedString2(ranges, token.content)
+          tokenContent += createHighlightedString2(ranges, token.content, targetedQueryWord?.text)
         } else {
           tokenContent += subTripleArrow(token.content)
         }
@@ -141,13 +146,15 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
       queries.forEach(query => {
         switch (query.kind) {
           case "query": {
-            const previousLine = (lines[i - 1] || [])[0]?.content || ""
-            const previousLineWhitespace = previousLine.slice(0, /\S/.exec(previousLine)?.index || 0)
-            // prettier-ignore
-            const linePrefix = previousLineWhitespace + "//" + "".padStart(query.offset - 2 - previousLineWhitespace.length)
-            // prettier-ignore
-            const queryTextWithPrefix = query.text?.split("\n").map((l, i) => i !== 0 ? linePrefix + l : l).join("\n")
-            html += `<span class='query'>${linePrefix + "^ = " + queryTextWithPrefix}</span>`
+            const queryTextWithPrefix = escapeHtml(query.text!)
+            const lspValues = staticQuickInfosGroupedByLine.get(i) || []
+            const targetedWord = lspValues.find(response => response.text === (queries.length && queries[0].text))!
+            const halfWayAcrossTheTargetedWord = ((targetedWord && targetedWord.character + targetedWord?.length / 2) - 1) || 0
+            html +=
+              `<span class='popover-prefix'>` +
+              " ".repeat(halfWayAcrossTheTargetedWord) +
+              "</span>" +
+              `<span class='popover'><div class='arrow'></div>${queryTextWithPrefix}</span>`
             break
           }
 
@@ -177,7 +184,7 @@ export function twoslashRenderer(lines: Lines, options: HtmlRendererOptions, two
     }
   })
   html = replaceTripleArrowEncoded(html.replace(/\n*$/, "")) // Get rid of final new lines
-  const playgroundLink = `<a href='${twoslash.playgroundURL}'>Try</a>`
+  const playgroundLink = `<a class='playground-link' href='${twoslash.playgroundURL}'>Try</a>`
   html += `</code>${playgroundLink}</div></pre>`
 
   return html

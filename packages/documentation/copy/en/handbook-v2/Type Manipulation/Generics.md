@@ -3,7 +3,6 @@ title: Generics
 layout: docs
 permalink: /docs/handbook/2/generics.html
 oneline: Types which take parameters
-beta: true
 ---
 
 A major part of software engineering is building components that not only have well-defined and consistent APIs, but are also reusable.
@@ -41,14 +40,14 @@ Instead, we need a way of capturing the type of the argument in such a way that 
 Here, we will use a _type variable_, a special kind of variable that works on types rather than values.
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 ```
 
-We've now added a type variable `T` to the identity function.
-This `T` allows us to capture the type the user provides (e.g. `number`), so that we can use that information later.
-Here, we use `T` again as the return type. On inspection, we can now see the same type is used for the argument and the return type.
+We've now added a type variable `Type` to the identity function.
+This `Type` allows us to capture the type the user provides (e.g. `number`), so that we can use that information later.
+Here, we use `Type` again as the return type. On inspection, we can now see the same type is used for the argument and the return type.
 This allows us to traffic that type information in one side of the function and out the other.
 
 We say that this version of the `identity` function is generic, as it works over a range of types.
@@ -58,7 +57,7 @@ Once we've written the generic identity function, we can call it in one of two w
 The first way is to pass all of the arguments, including the type argument, to the function:
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 // ---cut---
@@ -66,12 +65,12 @@ let output = identity<string>("myString");
 //       ^?
 ```
 
-Here we explicitly set `T` to be `string` as one of the arguments to the function call, denoted using the `<>` around the arguments rather than `()`.
+Here we explicitly set `Type` to be `string` as one of the arguments to the function call, denoted using the `<>` around the arguments rather than `()`.
 
-The second way is also perhaps the most common. Here we use _type argument inference_ -- that is, we want the compiler to set the value of `T` for us automatically based on the type of the argument we pass in:
+The second way is also perhaps the most common. Here we use _type argument inference_ -- that is, we want the compiler to set the value of `Type` for us automatically based on the type of the argument we pass in:
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 // ---cut---
@@ -79,7 +78,7 @@ let output = identity("myString");
 //       ^?
 ```
 
-Notice that we didn't have to explicitly pass the type in the angle brackets (`<>`); the compiler just looked at the value `"myString"`, and set `T` to its type.
+Notice that we didn't have to explicitly pass the type in the angle brackets (`<>`); the compiler just looked at the value `"myString"`, and set `Type` to its type.
 While type argument inference can be a helpful tool to keep code shorter and more readable, you may need to explicitly pass in the type arguments as we did in the previous example when the compiler fails to infer the type, as may happen in more complex examples.
 
 ## Working with Generic Type Variables
@@ -90,7 +89,7 @@ That is, that you actually treat these parameters as if they could be any and al
 Let's take our `identity` function from earlier:
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 ```
@@ -100,7 +99,7 @@ We might be tempted to write this:
 
 ```ts twoslash
 // @errors: 2339
-function loggingIdentity<T>(arg: T): T {
+function loggingIdentity<Type>(arg: Type): Type {
   console.log(arg.length);
   return arg;
 }
@@ -109,31 +108,31 @@ function loggingIdentity<T>(arg: T): T {
 When we do, the compiler will give us an error that we're using the `.length` member of `arg`, but nowhere have we said that `arg` has this member.
 Remember, we said earlier that these type variables stand in for any and all types, so someone using this function could have passed in a `number` instead, which does not have a `.length` member.
 
-Let's say that we've actually intended this function to work on arrays of `T` rather than `T` directly. Since we're working with arrays, the `.length` member should be available.
+Let's say that we've actually intended this function to work on arrays of `Type` rather than `Type` directly. Since we're working with arrays, the `.length` member should be available.
 We can describe this just like we would create arrays of other types:
 
-```ts twoslash
-function loggingIdentity<T>(arg: T[]): T[] {
+```ts twoslash {1}
+function loggingIdentity<Type>(arg: Type[]): Type[] {
   console.log(arg.length);
   return arg;
 }
 ```
 
-You can read the type of `loggingIdentity` as "the generic function `loggingIdentity` takes a type parameter `T`, and an argument `arg` which is an array of `T`s, and returns an array of `T`s."
-If we passed in an array of numbers, we'd get an array of numbers back out, as `T` would bind to `number`.
-This allows us to use our generic type variable `T` as part of the types we're working with, rather than the whole type, giving us greater flexibility.
+You can read the type of `loggingIdentity` as "the generic function `loggingIdentity` takes a type parameter `Type`, and an argument `arg` which is an array of `Type`s, and returns an array of `Type`s."
+If we passed in an array of numbers, we'd get an array of numbers back out, as `Type` would bind to `number`.
+This allows us to use our generic type variable `Type` as part of the types we're working with, rather than the whole type, giving us greater flexibility.
 
 We can alternatively write the sample example this way:
 
-```ts twoslash
-function loggingIdentity<T>(arg: Array<T>): Array<T> {
+```ts twoslash {1}
+function loggingIdentity<Type>(arg: Array<Type>): Array<Type> {
   console.log(arg.length); // Array has a .length, so no more error
   return arg;
 }
 ```
 
 You may already be familiar with this style of type from other languages.
-In the next section, we'll cover how you can create your own generic types like `Array<T>`.
+In the next section, we'll cover how you can create your own generic types like `Array<Type>`.
 
 ## Generic Types
 
@@ -143,31 +142,31 @@ In this section, we'll explore the type of the functions themselves and how to c
 The type of generic functions is just like those of non-generic functions, with the type parameters listed first, similarly to function declarations:
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 
-let myIdentity: <T>(arg: T) => T = identity;
+let myIdentity: <Type>(arg: Type) => Type = identity;
 ```
 
 We could also have used a different name for the generic type parameter in the type, so long as the number of type variables and how the type variables are used line up.
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 
-let myIdentity: <U>(arg: U) => U = identity;
+let myIdentity: <Input>(arg: Input) => Input = identity;
 ```
 
 We can also write the generic type as a call signature of an object literal type:
 
 ```ts twoslash
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 
-let myIdentity: { <T>(arg: T): T } = identity;
+let myIdentity: { <Type>(arg: Type): Type } = identity;
 ```
 
 Which leads us to writing our first generic interface.
@@ -175,10 +174,10 @@ Let's take the object literal from the previous example and move it to an interf
 
 ```ts twoslash
 interface GenericIdentityFn {
-  <T>(arg: T): T;
+  <Type>(arg: Type): Type;
 }
 
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 
@@ -190,11 +189,11 @@ This lets us see what type(s) we're generic over (e.g. `Dictionary<string>` rath
 This makes the type parameter visible to all the other members of the interface.
 
 ```ts twoslash
-interface GenericIdentityFn<T> {
-  (arg: T): T;
+interface GenericIdentityFn<Type> {
+  (arg: Type): Type;
 }
 
-function identity<T>(arg: T): T {
+function identity<Type>(arg: Type): Type {
   return arg;
 }
 
@@ -216,9 +215,9 @@ Generic classes have a generic type parameter list in angle brackets (`<>`) foll
 
 ```ts twoslash
 // @strict: false
-class GenericNumber<T> {
-  zeroValue: T;
-  add: (x: T, y: T) => T;
+class GenericNumber<NumType> {
+  zeroValue: NumType;
+  add: (x: NumType, y: NumType) => NumType;
 }
 
 let myGenericNumber = new GenericNumber<number>();
@@ -233,9 +232,9 @@ We could have instead used `string` or even more complex objects.
 
 ```ts twoslash
 // @strict: false
-class GenericNumber<T> {
-  zeroValue: T;
-  add: (x: T, y: T) => T;
+class GenericNumber<NumType> {
+  zeroValue: NumType;
+  add: (x: NumType, y: NumType) => NumType;
 }
 // ---cut---
 let stringNumeric = new GenericNumber<string>();
@@ -249,25 +248,25 @@ console.log(stringNumeric.add(stringNumeric.zeroValue, "test"));
 
 Just as with interface, putting the type parameter on the class itself lets us make sure all of the properties of the class are working with the same type.
 
-As we covered in [our section on classes](/docs/handbook/classes.html), a class has two sides to its type: the static side and the instance side.
+As we cover in [our section on classes](/docs/handbook/2/classes.html), a class has two sides to its type: the static side and the instance side.
 Generic classes are only generic over their instance side rather than their static side, so when working with classes, static members can not use the class's type parameter.
 
 ## Generic Constraints
 
-If you remember from an earlier example, you may sometimes want to write a generic function that works on a set of types where you have some knowledge about what capabilities that set of types will have.
+If you remember from an earlier example, you may sometimes want to write a generic function that works on a set of types where you have _some_ knowledge about what capabilities that set of types will have.
 In our `loggingIdentity` example, we wanted to be able to access the `.length` property of `arg`, but the compiler could not prove that every type had a `.length` property, so it warns us that we can't make this assumption.
 
 ```ts twoslash
 // @errors: 2339
-function loggingIdentity<T>(arg: T): T {
+function loggingIdentity<Type>(arg: Type): Type {
   console.log(arg.length);
   return arg;
 }
 ```
 
-Instead of working with any and all types, we'd like to constrain this function to work with any and all types that also have the `.length` property.
+Instead of working with any and all types, we'd like to constrain this function to work with any and all types that *also*  have the `.length` property.
 As long as the type has this member, we'll allow it, but it's required to have at least this member.
-To do so, we must list our requirement as a constraint on what T can be.
+To do so, we must list our requirement as a constraint on what `Type` can be.
 
 To do so, we'll create an interface that describes our constraint.
 Here, we'll create an interface that has a single `.length` property and then we'll use this interface and the `extends` keyword to denote our constraint:
@@ -277,7 +276,7 @@ interface Lengthwise {
   length: number;
 }
 
-function loggingIdentity<T extends Lengthwise>(arg: T): T {
+function loggingIdentity<Type extends Lengthwise>(arg: Type): Type {
   console.log(arg.length); // Now we know it has a .length property, so no more error
   return arg;
 }
@@ -291,7 +290,7 @@ interface Lengthwise {
   length: number;
 }
 
-function loggingIdentity<T extends Lengthwise>(arg: T): T {
+function loggingIdentity<Type extends Lengthwise>(arg: Type): Type {
   console.log(arg.length);
   return arg;
 }
@@ -306,7 +305,7 @@ interface Lengthwise {
   length: number;
 }
 
-function loggingIdentity<T extends Lengthwise>(arg: T): T {
+function loggingIdentity<Type extends Lengthwise>(arg: Type): Type {
   console.log(arg.length);
   return arg;
 }
@@ -322,7 +321,7 @@ We'd like to ensure that we're not accidentally grabbing a property that does no
 
 ```ts twoslash
 // @errors: 2345
-function getProperty<T, K extends keyof T>(obj: T, key: K) {
+function getProperty<Type, Key extends keyof Type>(obj: Type, key: Key) {
   return obj[key];
 }
 
@@ -337,7 +336,7 @@ getProperty(x, "m");
 When creating factories in TypeScript using generics, it is necessary to refer to class types by their constructor functions. For example,
 
 ```ts twoslash
-function create<T>(c: { new (): T }): T {
+function create<Type>(c: { new (): Type }): Type {
   return new c();
 }
 ```
@@ -373,3 +372,5 @@ function createInstance<A extends Animal>(c: new () => A): A {
 createInstance(Lion).keeper.nametag;
 createInstance(Bee).keeper.hasMask;
 ```
+
+This pattern is used to power the [mixins](/docs/handbook/mixins.html) design pattern.

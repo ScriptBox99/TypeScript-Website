@@ -1,12 +1,12 @@
 import { escapeHtml } from "../utils"
-import { HtmlRendererOptions } from "./plain"
+import { HtmlRendererOptions, preOpenerFromRenderingOptsWithExtras } from "./plain"
 
 type Lines = import("shiki").IThemedToken[][]
 
-export function defaultShikiRenderer(lines: Lines, options: HtmlRendererOptions) {
+export function defaultShikiRenderer(lines: Lines, options: HtmlRendererOptions, codefenceMeta: any) {
   let html = ""
 
-  html += `<pre class="shiki">`
+  html += preOpenerFromRenderingOptsWithExtras(options, codefenceMeta, [])
   if (options.langId) {
     html += `<div class="language-id">${options.langId}</div>`
   }

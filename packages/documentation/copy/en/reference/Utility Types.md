@@ -34,7 +34,6 @@ const todo2 = updateTodo(todo1, {
 });
 ```
 
-
 ## `Required<Type>`
 
 Constructs a type consisting of all properties of `Type` set to required. The opposite of [`Partial`](#partialtype).
@@ -52,7 +51,6 @@ const obj: Props = { a: 5 };
 
 const obj2: Required<Props> = { a: 5 };
 ```
-
 
 ## `Readonly<Type>`
 
@@ -88,25 +86,26 @@ Constructs an object type whose property keys are `Keys` and whose property valu
 ##### Example
 
 ```ts twoslash
-interface PageInfo {
-  title: string;
+interface CatInfo {
+  age: number;
+  breed: string;
 }
 
-type Page = "home" | "about" | "contact";
+type CatName = "miffy" | "boris" | "mordred";
 
-const nav: Record<Page, PageInfo> = {
-  about: { title: "about" },
-  contact: { title: "contact" },
-  home: { title: "home" },
+const cats: Record<CatName, CatInfo> = {
+  miffy: { age: 10, breed: "Persian" },
+  boris: { age: 5, breed: "Maine Coon" },
+  mordred: { age: 16, breed: "British Shorthair" },
 };
 
-nav.about;
+cats.boris;
 // ^?
 ```
 
 ## `Pick<Type, Keys>`
 
-Constructs a type by picking the set of properties `Keys` from `Type`.
+Constructs a type by picking the set of properties `Keys` (string literal or union of string literals) from `Type`.
 
 ##### Example
 
@@ -130,7 +129,7 @@ todo;
 
 ## `Omit<Type, Keys>`
 
-Constructs a type by picking all properties from `Type` and then removing `Keys`.
+Constructs a type by picking all properties from `Type` and then removing `Keys` (string literal or union of string literals).
 
 ##### Example
 
@@ -139,6 +138,7 @@ interface Todo {
   title: string;
   description: string;
   completed: boolean;
+  createdAt: number;
 }
 
 type TodoPreview = Omit<Todo, "description">;
@@ -146,9 +146,20 @@ type TodoPreview = Omit<Todo, "description">;
 const todo: TodoPreview = {
   title: "Clean room",
   completed: false,
+  createdAt: 1615544252770,
 };
 
 todo;
+// ^?
+
+type TodoInfo = Omit<Todo, "completed" | "createdAt">;
+
+const todoInfo: TodoInfo = {
+  title: "Pick up kids",
+  description: "Kindergarten closes at 5pm",
+};
+
+todoInfo;
 // ^?
 ```
 
@@ -370,5 +381,13 @@ In the example above, the `methods` object in the argument to `makeObject` has a
 The `ThisType<T>` marker interface is simply an empty interface declared in `lib.d.ts`. Beyond being recognized in the contextual type of an object literal, the interface acts like any empty interface.
 
 ## Intrinsic String Manipulation Types
+
+### `Uppercase<StringType>`
+
+### `Lowercase<StringType>`
+
+### `Capitalize<StringType>`
+
+### `Uncapitalize<StringType>`
 
 To help with string manipulation around template string literals, TypeScript includes a set of types which can be used in string manipulation within the type system. You can find those in the [Template Literal Types](/docs/handbook/2/template-literal-types.html#uppercasestringtype) documentation.
