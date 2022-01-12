@@ -2,6 +2,7 @@ export const playCopy = {
   play_subnav_title: "Playground",
   play_subnav_config: "TS Config",
   play_config_language_blurb: "Which language should be used in the editor",
+  play_subnav_handbook: "Help",
   play_subnav_examples: "Examples",
   play_subnav_examples_close: "Close",
   play_subnav_whatsnew: "What's New",
@@ -46,9 +47,11 @@ export const playCopy = {
   play_export_copy_link_preview: "Copy as Markdown Link with Preview",
   play_export_tsast: "Open in TypeScript AST Viewer",
   play_export_bugworkbench: "Open in Bug Workbench",
+  play_export_vscode_dev_play: "Open in VSCode TS Playground (alpha)",
   play_export_sandbox: "Open in CodeSandbox",
   play_export_stackblitz: "Open in StackBlitz",
   play_export_clipboard: "URL copied to clipboard",
+  play_esm_mode: "Switched to ESM mode",
   play_clear_logs: "Logs cleared",
   play_run_js: "Executed JavaScript",
   play_run_ts: "Executed transpiled TypeScript",
@@ -58,7 +61,7 @@ export const playCopy = {
 
 // You could think of it in three ways:
 //
-//  - A place to learn TypeScript in a place where nothing can break
+//  - A location to learn TypeScript where nothing can break
 //  - A place to experiment with TypeScript syntax, and share the URLs with others
 //  - A sandbox to experiment with different compiler features of TypeScript
 

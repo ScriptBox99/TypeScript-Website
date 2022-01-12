@@ -65,8 +65,8 @@ module.exports = {
     {
       resolve: `gatsby-plugin-sitemap`,
       options: {
-        // Skip handbook v2 frmo appearing in search
-        exclude: [`*/2/*`, `*/glossary`, `*/vo/*`],
+        // Skip handbook v2 from appearing in search
+        excludes: [`*/glossary`, `*/vo/*`],
       },
     },
     // Lets you edit the head from inside a react tree
@@ -117,6 +117,13 @@ module.exports = {
       },
     },
     {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        path: `${__dirname}/../playground-handbook/copy`,
+        name: `playground-handbook`,
+      },
+    },
+    {
       resolve: "gatsby-plugin-i18n",
       options: {
         langKeyDefault: "en",
@@ -147,6 +154,7 @@ module.exports = {
             resolve: "gatsby-remark-shiki-twoslash",
             options: {
               theme: require("./lib/themes/typescript-beta-light.json"),
+              addTryButton: true,
             },
           },
           "gatsby-remark-copy-linked-files",

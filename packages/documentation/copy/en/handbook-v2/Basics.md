@@ -4,7 +4,7 @@ layout: docs
 permalink: /docs/handbook/2/basic-types.html
 oneline: "Step one in learning TypeScript: The basic types."
 preamble: >
-  <p>Welcome to the first page of the handbook, if this is your first experience with TypeScript - you may want to start at one of the '<a href='https://www.typescriptlang.org/docs/handbook/intro.html#get-started'>Getting Started</a>' guides</a>
+  <p>Welcome to the first page of the handbook. If this is your first experience with TypeScript - you may want to start at one of the '<a href='https://www.typescriptlang.org/docs/handbook/intro.html#get-started'>Getting Started</a>' guides</a>
 ---
 
 Each and every value in JavaScript has a set of behaviors you can observe from running different operations.
@@ -266,7 +266,7 @@ TypeScript is telling us we forgot to pass an argument to the `greet` function, 
 So far we've only written standard JavaScript, and yet type-checking was still able to find problems with our code.
 Thanks TypeScript!
 
-### Emitting with Errors
+## Emitting with Errors
 
 One thing you might not have noticed from the last example was that our `hello.js` file changed again.
 If we open that file up then we'll see that the contents still basically look the same as our input file.
@@ -280,7 +280,7 @@ Why should converting it over to TypeScript stop you from running it?
 
 So TypeScript doesn't get in your way.
 Of course, over time, you may want to be a bit more defensive against mistakes, and make TypeScript act a bit more strictly.
-In that case, you can use the `--noEmitOnError` compiler option.
+In that case, you can use the [`noEmitOnError`](/tsconfig#noEmitOnError) compiler option.
 Try changing your `hello.ts` file and running `tsc` with that flag:
 
 ```sh
@@ -304,7 +304,7 @@ function greet(person: string, date: Date) {
 What we did was add _type annotations_ on `person` and `date` to describe what types of values `greet` can be called with.
 You can read that signature as "`greet` takes a `person` of type `string`, and a `date` of type `Date`".
 
-With this, TypeScript can tell us about other cases where we might have been called incorrectly.
+With this, TypeScript can tell us about other cases where `greet` might have been called incorrectly.
 For example...
 
 ```ts twoslash
@@ -392,7 +392,7 @@ TypeScript has the ability to rewrite code from newer versions of ECMAScript to 
 This process of moving from a newer or "higher" version of ECMAScript down to an older or "lower" one is sometimes called _downleveling_.
 
 By default TypeScript targets ES3, an extremely old version of ECMAScript.
-We could have chosen something a little bit more recent by using the `--target` flag.
+We could have chosen something a little bit more recent by using the [`target`](/tsconfig#target) option.
 Running with `--target es2015` changes TypeScript to target ECMAScript 2015, meaning code should be able to run wherever ECMAScript 2015 is supported.
 So running `tsc --target es2015 hello.ts` gives us the following output:
 
@@ -421,20 +421,20 @@ This can require a little extra work, but generally speaking it pays for itself 
 When possible, a new codebase should always turn these strictness checks on.
 
 TypeScript has several type-checking strictness flags that can be turned on or off, and all of our examples will be written with all of them enabled unless otherwise stated.
-The `--strict` flag in the CLI, or `"strict": true` in a [`tsconfig.json`](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) toggles them all on simultaneously, but we can opt out of them individually.
-The two biggest ones you should know about are `noImplicitAny` and `strictNullChecks`.
+The [`strict`](/tsconfig#strict) flag in the CLI, or `"strict": true` in a [`tsconfig.json`](https://www.typescriptlang.org/docs/handbook/tsconfig-json.html) toggles them all on simultaneously, but we can opt out of them individually.
+The two biggest ones you should know about are [`noImplicitAny`](/tsconfig#noImplicitAny) and [`strictNullChecks`](/tsconfig#strictNullChecks).
 
-### `noImplicitAny`
+## `noImplicitAny`
 
-Recall that in some places, TypeScript doesn't try to infer any types for us and instead falls back to the most lenient type: `any`.
+Recall that in some places, TypeScript doesn't try to infer types for us and instead falls back to the most lenient type: `any`.
 This isn't the worst thing that can happen - after all, falling back to `any` is just the plain JavaScript experience anyway.
 
 However, using `any` often defeats the purpose of using TypeScript in the first place.
 The more typed your program is, the more validation and tooling you'll get, meaning you'll run into fewer bugs as you code.
-Turning on the `noImplicitAny` flag will issue an error on any variables whose type is implicitly inferred as `any`.
+Turning on the [`noImplicitAny`](/tsconfig#noImplicitAny) flag will issue an error on any variables whose type is implicitly inferred as `any`.
 
-### `strictNullChecks`
+## `strictNullChecks`
 
 By default, values like `null` and `undefined` are assignable to any other type.
 This can make writing some code easier, but forgetting to handle `null` and `undefined` is the cause of countless bugs in the world - some consider it a [billion dollar mistake](https://www.youtube.com/watch?v=ybrQvs4x0Ps)!
-The `strictNullChecks` flag makes handling `null` and `undefined` more explicit, and _spares_ us from worrying about whether we _forgot_ to handle `null` and `undefined`.
+The [`strictNullChecks`](/tsconfig#strictNullChecks) flag makes handling `null` and `undefined` more explicit, and _spares_ us from worrying about whether we _forgot_ to handle `null` and `undefined`.

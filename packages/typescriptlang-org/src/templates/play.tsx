@@ -16,6 +16,7 @@ import { Intl } from "../components/Intl"
 import "reflect-metadata"
 
 import playgroundReleases from "../../../sandbox/src/releases.json"
+import { getPlaygroundUrls } from "../lib/playgroundURLs"
 
 // This gets set by the playground
 declare const playground: ReturnType<typeof import("@typescript/playground").setupPlayground>
@@ -25,6 +26,7 @@ type Props = {
     lang: string
     examplesTOC: typeof import("../../static/js/examples/en.json")
     optionsSummary: any // this is just passed through to the playground JS library at this point
+    playgroundHandbookTOC: { docs : any[] }
   }
 }
 
@@ -54,6 +56,8 @@ const Play: React.FC<Props> = (props) => {
       return
     }
 
+    // @ts-ignore - so the playground handbook can grab this data
+    window.playgroundHandbookTOC = props.pageContext.playgroundHandbookTOC
     // @ts-ignore - so the config options can use localized descriptions
     window.optionsSummary = props.pageContext.optionsSummary
     // @ts-ignore - for React-based plugins
@@ -83,13 +87,15 @@ const Play: React.FC<Props> = (props) => {
         tsVersionParam = tsVersionParam.replace("-insiders.", "-dev.")
       }
 
-      const latestRelease = [...playgroundReleases.versions].sort().pop()
+      const latestRelease = [...playgroundReleases.versions].sort().pop()!
       const tsVersion = tsVersionParam || latestRelease
 
       // Because we can reach to localhost ports from the site, it's possible for the locally built compiler to 
       // be hosted and to power the editor with a bit of elbow grease.
       const useLocalCompiler = tsVersion === "dev"
-      const urlForMonaco = useLocalCompiler ? "http://localhost:5615/dev/vs" : `https://typescript.azureedge.net/cdn/${tsVersion}/monaco/min/vs`
+      const devIsh = ["pr", "dev"]
+      const version = devIsh.find(d => tsVersion.includes(d)) ? "dev" : "min"
+      const urlForMonaco = useLocalCompiler ? "http://localhost:5615/dev/vs" : `https://typescript.azureedge.net/cdn/${tsVersion}/monaco/${version}/vs`
 
       // Make a quick HEAD call for the main monaco editor for this version of TS, if it
       // bails then give a useful error message and bail.
@@ -105,13 +111,16 @@ const Play: React.FC<Props> = (props) => {
         return
       }
 
+      // Allow prod/staging builds to set a custom commit prefix to bust caches
+      const {sandboxRoot, playgroundRoot, playgroundWorker} = getPlaygroundUrls()
+      
       // @ts-ignore
       const re: any = global.require
       re.config({
         paths: {
           vs: urlForMonaco,
-          "typescript-sandbox": withPrefix('/js/sandbox'),
-          "typescript-playground": withPrefix('/js/playground'),
+          "typescript-sandbox": sandboxRoot,
+          "typescript-playground": playgroundRoot,
           "unpkg": "https://unpkg.com",
           "local": "http://localhost:5000",
         },
@@ -130,14 +139,15 @@ const Play: React.FC<Props> = (props) => {
 
       re(["vs/editor/editor.main", "vs/language/typescript/tsWorker", "typescript-sandbox/index", "typescript-playground/index"], async (main: typeof import("monaco-editor"), tsWorker: any, sandbox: typeof import("@typescript/sandbox"), playground: typeof import("@typescript/playground")) => {
         // Importing "vs/language/typescript/tsWorker" will set ts as a global
-        const ts = (global as any).ts
+        const ts = (global as any).ts || tsWorker.typescript
         const isOK = main && ts && sandbox && playground
-
         if (isOK) {
           document.getElementById("loader")!.parentNode?.removeChild(document.getElementById("loader")!)
         } else {
-          console.error("Errr")
+          console.error("Error setting up all the 4 key dependencies")
           console.error("main", !!main, "ts", !!ts, "sandbox", !!sandbox, "playground", !!playground)
+          document.getElementById("loading-message")!.innerText = "Cannot load the Playground in this browser, see logs in console."
+          return
         }
 
         // Set the height of monaco to be either your window height or 600px - whichever is smallest
@@ -146,14 +156,18 @@ const Play: React.FC<Props> = (props) => {
         const height = Math.max(window.innerHeight, 600)
         container.style.height = `${height - Math.round(container.getClientRects()[0].top) - 18}px`
 
+        const extension = (!!params.get("useJavaScript") ? "js" : params.get("filetype") || "ts") as any
+        const workerPath = params.get("multiFile") ?  `${document.location.origin + playgroundWorker}?filetype=${extension}` : undefined
+
         // Create the sandbox
         const sandboxEnv = await sandbox.createTypeScriptSandbox({
           text: localStorage.getItem('sandbox-history') || i("play_default_code_sample"),
           compilerOptions: {},
           domID: "monaco-editor-embed",
-          filetype: (!!params.get("useJavaScript") ? "js" : params.get("filetype") || "ts") as any,
+          filetype: extension,
           acquireTypes: !localStorage.getItem("disable-ata"),
           supportTwoslashCompilerOptions: true,
+          customTypeScriptWorkerPath: workerPath ,
           monacoSettings: {
             fontFamily: "var(--code-font)",
             fontLigatures: true
@@ -225,8 +239,12 @@ const Play: React.FC<Props> = (props) => {
             <a href="#" id="whatisnew-button" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="menu" aria-expanded="false" aria-controls="whatisnew">{i("play_subnav_whatsnew")} <span className="caret"></span></a>
             <ul className="examples-dropdown" id="whatisnew" aria-labelledby="whatisnew-button">
               <button role="button" aria-label="Close dropdown" className="examples-close">{i("play_subnav_examples_close")}</button>
-              <RenderExamples defaultSection="4.2" sections={["4.2", "4.1", "4.0", "3.8", "3.7", "Playground"]} examples={props.pageContext.examplesTOC} locale={props.pageContext.lang} />
+              <RenderExamples defaultSection="4.4" sections={["4.4", "4.3", "4.2", "4.1", "4.0", "3.8", "3.7", "Playground"]} examples={props.pageContext.examplesTOC} locale={props.pageContext.lang} />
             </ul>
+          </li>
+
+          <li className="dropdown">
+            <a href="#" id="handbook-button" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="menu" aria-expanded="false" aria-controls="examples">{i("play_subnav_handbook")} <span className="caret"></span></a>
           </li>
         </ul>
 
@@ -242,6 +260,7 @@ const Play: React.FC<Props> = (props) => {
         </div>
         <div id="playground-container" style={{ display: "none" }}>
           <div id="editor-container">
+            <div id="story-container" style={{ display: "none" }}></div>
             <div id="editor-toolbar" className="navbar-sub" >
 
               <ul>
@@ -262,6 +281,7 @@ const Play: React.FC<Props> = (props) => {
                     < li role="separator" className="divider" ></li>
                     <li><a href="#" onClick={() => playground.exporter.openInTSAST()} aria-label={i("play_export_tsast")}>{i("play_export_tsast")}</a></li>
                     <li><a href="#" onClick={() => playground.exporter.openInBugWorkbench()} aria-label={i("play_export_bugworkbench")}>{i("play_export_bugworkbench")}</a></li>
+                    <li><a href="#" onClick={() => playground.exporter.openInVSCodeDev()} aria-label={i("play_export_vscode_dev_play")}>{i("play_export_vscode_dev_play")}</a></li>
                     <li role="separator" className="divider"></li>
                     <li><a href="#" onClick={() => playground.exporter.openProjectInCodeSandbox()} aria-label={i("play_export_sandbox")} >{i("play_export_sandbox")}</a></li>
                     <li><a href="#" onClick={() => playground.exporter.openProjectInStackBlitz()} aria-label={i("play_export_stackblitz")} >{i("play_export_stackblitz")}</a></li>
@@ -274,7 +294,7 @@ const Play: React.FC<Props> = (props) => {
                 <li><a id="sidebar-toggle" aria-label="Hide Sidebar" href="#">&#x21E5;</a></li>
               </ul>
             </div>
-            { /** This is the div which monaco is added into  **/}
+            { /** This is the div which monaco is added into - careful, lots of changes happen here at runtime **/}
             <div id="monaco-editor-embed" />
           </div>
         </div>

@@ -16,11 +16,11 @@ import { createInternational } from "../lib/createInternational"
 import { useIntl } from "react-intl"
 import { createIntlLink } from "../components/IntlLink"
 import { handbookCopy } from "../copy/en/handbook"
-import { setupTwoslashHovers } from "shiki-twoslash/dist/dom"
 import { Contributors } from "../components/handbook/Contributors"
 import { overrideSubNavLinksWithSmoothScroll, updateSidebarOnScroll } from "./scripts/setupSubNavigationSidebar"
 import { setupLikeDislikeButtons } from "./scripts/setupLikeDislikeButtons"
 import { DislikeUnfilledSVG, LikeUnfilledSVG } from "../components/svgs/documentation"
+import { Popup, useQuickInfoPopup } from "../components/Popup"
 import Helmet from "react-helmet"
 
 type Props = {
@@ -45,6 +45,9 @@ const HandbookTemplate: React.FC<Props> = (props) => {
     return <div></div>
   }
 
+  // Note: This can, and does, change triggering re-renders
+  const showPopup = useQuickInfoPopup(props.pageContext.lang)
+
   const [deprecationURL, setDeprecationURL] = useState(post.frontmatter!.deprecated_by)
 
   const i = createInternational<typeof handbookCopy>(useIntl())
@@ -66,7 +69,6 @@ const HandbookTemplate: React.FC<Props> = (props) => {
     // Sets current selection
     updateSidebarOnScroll()
 
-    setupTwoslashHovers()
     setupLikeDislikeButtons(props.pageContext.slug, i)
 
 
@@ -82,11 +84,11 @@ const HandbookTemplate: React.FC<Props> = (props) => {
   const selectedID = props.pageContext.id || "NO-ID"
   const sidebarHeaders = post.headings?.filter(h => (h?.depth || 0) <= 3) || []
   const showSidebar = !post.frontmatter.disable_toc
+  const showExperimental = post.frontmatter.experimental
   const showSidebarHeadings = post.headings && sidebarHeaders.length <= 30
   const navigation = getDocumentationNavForLanguage(props.pageContext.lang)
   const isHandbook = post.frontmatter.handbook
   const prefix = isHandbook ? "Handbook" : "Documentation"
-
 
   const slug = slugger()
   return (
@@ -119,7 +121,7 @@ const HandbookTemplate: React.FC<Props> = (props) => {
               <Helmet>
                 <link rel="canonical" href={`https://www.typescriptlang.org${post.frontmatter.deprecated_by}`} />
               </Helmet>
-              <div id="deprecated">
+              <div id="deprecated-header">
                 <div id="deprecated-content">
                   <div id="deprecated-icon">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" stroke="black" /><path d="M8 3V9" stroke="black" /><path d="M8 11L8 13" stroke="black" /></svg>
@@ -134,6 +136,20 @@ const HandbookTemplate: React.FC<Props> = (props) => {
                 </div>
               </div>
             </>
+          }
+
+          {showExperimental && 
+           <div id="deprecated-header">
+                <div id="deprecated-content">
+                  <div id="deprecated-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7.5" stroke="black" /><path d="M8 3V9" stroke="black" /><path d="M8 11L8 13" stroke="black" /></svg>
+                  </div>
+                  <div>
+                    <h3>{i("handb_experimental_title")}</h3>
+                    <p>{i("handb_experimental_subtitle")}</p>
+                  </div>
+                </div>
+            </div>
           }
 
           <h2>{post.frontmatter.title}</h2>
@@ -174,6 +190,7 @@ const HandbookTemplate: React.FC<Props> = (props) => {
           <Contributors lang={props.pageContext.lang} i={i} path={props.pageContext.repoPath} lastEdited={props.pageContext.modifiedTime} />
         </div>
       </section>
+    <Popup {...showPopup}/>
     </Layout>
   )
 }
@@ -199,6 +216,7 @@ export const pageQuery = graphql`
         preamble
         deprecated_by
         deprecation_redirects
+        experimental
       }
     }
 

@@ -157,7 +157,9 @@ function rewireLoggingToElement(
       console.error(error)
 
       if (error instanceof SyntaxError && /\bexport\b/u.test(error.message)) {
-        console.warn('Tip: Change the Module setting to "CommonJS" in TS Config settings to allow top-level exports to work in the Playground')
+        console.warn(
+          'Tip: Change the Module setting to "CommonJS" in TS Config settings to allow top-level exports to work in the Playground'
+        )
       }
     }
   })
@@ -177,47 +179,80 @@ function rewireLoggingToElement(
     }
   }
 
+  // Inline constants which are switched out at the end of processing
+  const replacers = {
+    "<span class='literal'>null</span>": "1231232131231231423434534534",
+    "<span class='literal'>undefined</span>": "4534534534563567567567",
+    "<span class='comma'>, </span>": "785y8345873485763874568734y535438"
+  }
+
   const objectToText = (arg: any): string => {
     const isObj = typeof arg === "object"
     let textRep = ""
     if (arg && arg.stack && arg.message) {
       // special case for err
-      textRep = arg.message
+      textRep = htmlEscape(arg.message)
     } else if (arg === null) {
-      textRep = "<span class='literal'>null</span>"
+      textRep = replacers["<span class='literal'>null</span>"]
     } else if (arg === undefined) {
-      textRep = "<span class='literal'>undefined</span>"
+      textRep = replacers["<span class='literal'>undefined</span>"]
     } else if (typeof arg === "symbol") {
-      textRep = `<span class='literal'>${String(arg)}</span>`
+      textRep = `<span class='literal'>${htmlEscape(String(arg))}</span>`
     } else if (Array.isArray(arg)) {
-      textRep = "[" + arg.map(objectToText).join("<span class='comma'>, </span>") + "]"
+      textRep = "[" + arg.map(objectToText).join(replacers["<span class='comma'>, </span>"]) + "]"
+    } else if (arg instanceof Set) {
+      const setIter = [...arg]
+      textRep = `Set (${arg.size}) {` + setIter.map(objectToText).join(replacers["<span class='comma'>, </span>"]) + "}"
+    } else if (arg instanceof Map) {
+      const mapIter = [...arg.entries()]
+      textRep =
+        `Map (${arg.size}) {` +
+        mapIter.map(([k, v]) => `${objectToText(k)} => ${objectToText(v)}`).join(replacers["<span class='comma'>, </span>"]) +
+        "}"
     } else if (typeof arg === "string") {
-      textRep = '"' + arg + '"'
+      textRep = '"' + htmlEscape(arg) + '"'
     } else if (isObj) {
       const name = arg.constructor && arg.constructor.name
       // No one needs to know an obj is an obj
-      const nameWithoutObject = name && name === "Object" ? "" : name
+      const nameWithoutObject = name && name === "Object" ? "" : htmlEscape(name)
       const prefix = nameWithoutObject ? `${nameWithoutObject}: ` : ""
 
       // JSON.stringify omits any keys with a value of undefined. To get around this, we replace undefined with the text __undefined__ and then do a global replace using regex back to keyword undefined
-      textRep = prefix + JSON.stringify(arg, (_, value) => value === undefined ? '__undefined__' : value, 2).replace(/"__undefined__"/g, 'undefined')
+      textRep =
+        prefix +
+        JSON.stringify(arg, (_, value) => (value === undefined ? "__undefined__" : value), 2).replace(
+          /"__undefined__"/g,
+          "undefined"
+        )
+
+      textRep = htmlEscape(textRep)
     } else {
-      textRep = String(arg)
+      textRep = htmlEscape(String(arg))
     }
     return textRep
   }
 
   function produceOutput(args: any[]) {
-    return args.reduce((output: any, arg: any, index) => {
+    let result: string = args.reduce((output: any, arg: any, index) => {
       const textRep = objectToText(arg)
       const showComma = index !== args.length - 1
       const comma = showComma ? "<span class='comma'>, </span>" : ""
-      return output + textRep + comma + "&nbsp;"
+      return output + textRep + comma + " "
     }, "")
+
+    Object.keys(replacers).forEach(k => {
+      result = result.replace(new RegExp((replacers as any)[k], "g"), k)
+    })
+
+    return result
   }
 }
 
 // The reflect-metadata runtime is available, so allow that to go through
 function sanitizeJS(code: string) {
   return code.replace(`import "reflect-metadata"`, "").replace(`require("reflect-metadata")`, "")
+}
+
+function htmlEscape(str: string) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

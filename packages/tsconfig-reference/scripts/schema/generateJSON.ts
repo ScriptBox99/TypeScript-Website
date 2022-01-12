@@ -1,22 +1,28 @@
 // @ts-check
 // Data-dump all the CLI options
 
-/** Run with:
-     node --inspect-brk ./node_modules/.bin/ts-node packages/tsconfig-reference/scripts/schema/generateJSON.ts
+/** Run with either:
+     node ./node_modules/.bin/ts-node-transpile-only  packages/tsconfig-reference/scripts/schema/generateJSON.ts
      yarn ts-node scripts/cli/generateJSON.ts
      yarn workspace tsconfig-reference generate:json:schema
 */
 console.log("TSConfig Ref: JSON schema");
 
-import { read as readMarkdownFile } from "gray-matter";
+import matter from "gray-matter";
 import { CommandLineOptionBase } from "../types";
 import { writeFileSync } from "fs";
 import { join } from "path";
-import { format } from "prettier";
+import { fileURLToPath } from "url";
+import prettier from "prettier";
 import { CompilerOptionName } from "../../data/_types";
+import ts from "typescript";
+import type { JSONSchema7 } from "json-schema";
+import type { CommandLineOption } from "../tsconfigRules.js";
 
-const toJSONString = (obj) => format(JSON.stringify(obj, null, "  "), { filepath: "thing.json" });
-const writeJSON = (name, obj) => writeFileSync(join(__dirname, "result", name), toJSONString(obj));
+const toJSONString = (obj) =>
+  prettier.format(JSON.stringify(obj, null, "  "), { filepath: "thing.json" });
+const writeJSON = (name, obj) =>
+  writeFileSync(new URL(`result/${name}`, import.meta.url), toJSONString(obj));
 
 export interface CompilerOptionJSON extends CommandLineOptionBase {
   releaseVersion?: string;
@@ -30,9 +36,9 @@ export interface CompilerOptionJSON extends CommandLineOptionBase {
   hostObj: string;
 }
 
-const schemaBase = require("./vendor/base.json") as typeof import("./vendor/base.json");
-const tsconfigOpts = require(join(__dirname, "../../data/tsconfigOpts.json"))
-  .options as CompilerOptionJSON[];
+import schemaBase from "./vendor/base.json";
+// @ts-ignore
+import tsconfigOpts from "../../data/tsconfigOpts.json";
 
 // Cut down the list
 const filteredOptions = tsconfigOpts
@@ -60,7 +66,10 @@ const okToSkip = [
 filteredOptions.forEach((option) => {
   const name = option.name as CompilerOptionName;
   if (okToSkip.includes(name)) return;
-  const sectionsPath = join(__dirname, `../../copy/en/options/${name}.md`);
+  const sectionsPath = new URL(
+    `../../copy/en/options/${name}.md`,
+    import.meta.url
+  );
 
   let section;
   if (schemaCompilerOpts[name]) section = schemaCompilerOpts;
@@ -78,7 +87,7 @@ filteredOptions.forEach((option) => {
               "default": false
             },
 
-You're also going to need to make the new Markdown file for the compiler flag, run:
+You're also probably going to need to make the new Markdown file for the compiler flag, run:
 
 \n    echo '---\\ndisplay: "${option.name}"\\noneline: "Does something"\\n---\\n${option.description.message}\\n ' > ${sectionsPath}\n\nThen add some docs and run: \n>  yarn workspace tsconfig-reference build\n\n
     `;
@@ -88,7 +97,7 @@ You're also going to need to make the new Markdown file for the compiler flag, r
     let optionFile;
 
     try {
-      optionFile = readMarkdownFile(sectionsPath);
+      optionFile = matter.read(fileURLToPath(sectionsPath));
     } catch (error) {
       // prettier-ignore
       throw new Error(
@@ -96,8 +105,8 @@ You're also going to need to make the new Markdown file for the compiler flag, r
       );
     }
 
-    // Set the plain version
-    section[name].description = optionFile.data.oneline;
+    // Set the plain version, stripping internal markdown links.
+    section[name].description = optionFile.data.oneline.replace(/(?:__|[*#])|\[(.*?)\]\(.*?\)/gm, '$1');
 
     // Can be removed once https://github.com/ExodusMovement/schemasafe/pull/146 is merged
     const isEnumOrConst = section[name]["enum"];
@@ -112,8 +121,106 @@ You're also going to need to make the new Markdown file for the compiler flag, r
     // Set a markdown version which is prioritised in vscode, giving people
     // the chance to click on the links.
     section[name].markdownDescription =
-      optionFile.data.oneline + `\n\nSee more: https://www.typescriptlang.org/tsconfig#${name}`;
+      section[name].description + `\n\nSee more: https://www.typescriptlang.org/tsconfig#${name}`;
   }
 });
+
+for (const [properties, options] of [
+  [schemaCompilerOpts, ts.optionDeclarations],
+  [schemaWatchOpts, ts.optionsForWatch],
+  [
+    schemaBase.definitions.typeAcquisitionDefinition.properties.typeAcquisition
+      .properties,
+    ts.typeAcquisitionDeclarations,
+  ],
+] as const) {
+  for (const [name, optionSchema] of Object.entries(properties)) {
+    const option = options.find(
+      (option) =>
+        option.name === name &&
+        option.category?.key !== "Command_line_Options_6171"
+    );
+    if (!option) {
+      properties[name] = undefined;
+    } else if (option.type === "list") {
+      updateItemsSchema(
+        (optionSchema as Extract<typeof optionSchema, { items?: unknown }>)
+          .items as never,
+        option.element.type
+      );
+    } else {
+      updateItemsSchema(optionSchema as never, option.type);
+    }
+  }
+}
+
+// Update optionSchema or optionSchema.items, depending on whether
+// option is a CommandLineOptionOfListType.
+function updateItemsSchema(
+  itemsSchema: JSONSchema7,
+  type: CommandLineOption["type"]
+) {
+  const newEnum = typeof type !== "object" ? undefined : [...type.keys()];
+  // Update { enum: ... } if found in itemsSchema.anyOf, or
+  // itemsSchema.enum otherwise.
+  const enumSchema = itemsSchema.anyOf?.find(
+    (subschema): subschema is Extract<typeof subschema, { enum?: unknown }> =>
+      (subschema as Extract<typeof subschema, { enum?: unknown }>).enum as never
+  );
+  if (!enumSchema) {
+    updateEnum(itemsSchema, newEnum);
+    return;
+  }
+  updateEnum(enumSchema, newEnum);
+  // Ensure the new values are valid: They either exist in the enum or
+  // match a pattern, and update the pattern if not.
+  const patterns = itemsSchema
+    .anyOf!.map((subschema) => {
+      const pattern = (
+        subschema as Extract<typeof subschema, { pattern?: unknown }>
+      ).pattern;
+      return pattern !== undefined && new RegExp(pattern);
+    })
+    .filter(
+      (pattern): pattern is Exclude<typeof pattern, false> => pattern as never
+    );
+  if (
+    newEnum?.every(
+      (newValue) =>
+        enumSchema.enum!.includes(newValue) ||
+        patterns.some((pattern) => pattern.test(newValue))
+    )
+  )
+    return;
+  itemsSchema.anyOf = itemsSchema.anyOf!.filter(
+    (subschema) =>
+      !(subschema as Extract<typeof subschema, { pattern?: unknown }>).pattern
+  );
+  if (!newEnum) return;
+  // Regular expressions are not implicitly anchored.
+  const disjunction = newEnum.map((newValue) =>
+    [...newValue]
+      .map((character) =>
+        character === "."
+          ? String.raw`\.`
+          : character.toUpperCase() === character
+          ? character
+          : `[${character.toUpperCase()}${character}]`
+      )
+      .join("")
+  );
+  const pattern =
+    disjunction.length > 1 ? `(?:${disjunction.join("|")})` : disjunction[0];
+  itemsSchema.anyOf.push({ pattern: `^${pattern}$` });
+}
+
+function updateEnum(schema: JSONSchema7, newEnum: string[] | undefined) {
+  schema.enum = newEnum?.map(
+    (newValue) =>
+      schema.enum?.find(
+        (oldValue) => (oldValue as string).toLowerCase() === newValue
+      ) || newValue
+  );
+}
 
 writeJSON("schema.json", schemaBase);

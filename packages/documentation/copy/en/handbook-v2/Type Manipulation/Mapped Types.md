@@ -7,7 +7,7 @@ oneline: "Generating types by re-using an existing type."
 
 When you don't want to repeat yourself, sometimes a type needs to be based on another type.
 
-Mapped types build on the syntax for index signatures, which are used to declare the types of properties which has not been declared ahead of time:
+Mapped types build on the syntax for index signatures, which are used to declare the types of properties which have not been declared ahead of time:
 
 ```ts twoslash
 type Horse = {};
@@ -124,6 +124,20 @@ interface Circle {
 }
 
 type KindlessCircle = RemoveKindField<Circle>;
+//   ^?
+```
+
+You can map over arbitrary unions, not just unions of `string | number | symbol`, but unions of any type:
+
+```ts twoslash
+type EventConfig<Events extends { kind: string }> = {
+    [E in Events as E["kind"]]: (event: E) => void;
+}
+
+type SquareEvent = { kind: "square", x: number, y: number };
+type CircleEvent = { kind: "circle", radius: number };
+
+type Config = EventConfig<SquareEvent | CircleEvent>
 //   ^?
 ```
 

@@ -11,11 +11,11 @@ You may be familiar with the idea of mixins or traits for languages like Scala, 
 
 ## How Does A Mixin Work?
 
-The pattern relies on using Generics with class inheritance to extend a base class.
+The pattern relies on using generics with class inheritance to extend a base class.
 TypeScript's best mixin support is done via the class expression pattern.
-You can read more about how this pattern works in [JavaScript here](https://justinfagnani.com/2015/12/21/real-mixins-with-javascript-classes/).
+You can read more about how this pattern works in JavaScript [here](https://justinfagnani.com/2015/12/21/real-mixins-with-javascript-classes/).
 
-To get started, we'll need a class which will have the mixin's applied on top of:
+To get started, we'll need a class which will have the mixins applied on top of:
 
 ```ts twoslash
 class Sprite {
@@ -237,7 +237,7 @@ class Player {
 const player = new Player();
 player.shouldFreeze;
 
-// It the runtime aspect could be manually replicated via
+// The runtime aspect could be manually replicated via
 // type composition or interface merging.
 type FreezablePlayer = Player & { shouldFreeze: boolean };
 
